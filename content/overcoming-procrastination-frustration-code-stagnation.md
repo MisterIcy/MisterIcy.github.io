@@ -14,7 +14,7 @@ tags:
 categories: 
     - People & Teams
 excerpt: "Frustrated by code and endless procrastination? A raw look at overcoming productivity roadblocks, frustration, and developer flow."
-image: "/public/images/code-damnation.png"
+image: "https://mistericy.github.io/public/images/code-damnation.png"
 ---
 
 > A badly documented API is worse than a completely undocumented API.

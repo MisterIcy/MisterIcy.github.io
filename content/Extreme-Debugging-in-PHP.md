@@ -13,7 +13,7 @@ categories:
     - PHP
     - Debugging
 excerpt: "Learn how to tackle the most elusive PHP bugs — using custom-built debug binaries, Docker, GDB, and PHPUnit. A deep dive into extreme debugging techniques for real-world use"
-image: "/public/images/php-gdb.jpeg"
+image: "https://mistericy.github.io/public/images/php-gdb.jpeg"
 ---
 
 It was one of those akward, lonely and quiet nights. I could not tell what [Spotify](https://open.spotify.com/track/0nMKVMCXCmRplsKKLt1TTh) was playing, nor what time it was. My eyes were fixed on my terminal's cursor. It was blinking, constantly blinking, like it was taunting me.

@@ -15,7 +15,7 @@ categories:
 
 date: "2024-09-20"
 excerpt: "Join the reverse engineering journey of Hexplore — exploring x86 assembly, Ghidra, Win32 APIs, and game data formats to resurrect a 1990s classic. Learn how to dig into old binaries and rebuild lost code."
-image: "/public/images/hexplore.jpg"
+image: "https://mistericy.github.io/public/images/hexplore.jpg"
 ---
 
 
