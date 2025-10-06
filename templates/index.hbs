@@ -1,0 +1,43 @@
+{{> head pageTitle=title}}
+
+{{> meta 
+    ogType="website"
+    ogUrl=url
+    ogTitle=title
+    ogDescription=description
+    twitterUrl=url
+    twitterTitle=title
+    twitterDescription=description
+}}
+
+{{> structured-data structuredData=true isArticle=false}}
+<body class="bg-white text-slate-900 dark:bg-bg-01 dark:text-slate-100 leading-relaxed">
+
+  <!-- Skip link -->
+  <a class="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:bg-white focus:px-3 focus:py-2 focus:rounded-md focus:ring-2 focus:ring-accent" href="#main">Skip to content</a>
+
+  {{> header}}
+
+  <main id="main" class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    {{> hero}}
+
+    <div class="max-w-4xl mx-auto">
+      {{> posts-list}}
+    </div>
+
+    {{#if hasMorePosts}}
+    <div class="mt-8 text-center">
+      <a href="/archive" class="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-br from-accent to-slate-700 text-white rounded-lg hover:opacity-90 transition-all duration-200 font-medium">
+        <i class="fas fa-archive"></i>
+        View All Posts
+      </a>
+    </div>
+    {{/if}}
+  </main>
+
+  {{> footer}}
+
+  {{> scripts}}
+
+</body>
+</html>

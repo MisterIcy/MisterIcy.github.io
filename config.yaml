@@ -1,0 +1,15 @@
+site:
+  title: "Binary Brew"
+  headline: "Brewing stories of software, systems, and the souls behind the code"
+  description: "War stories and reflections from the frontlines of software — from debugging and DevOps to the psychology, teams, and souls that shape great systems"
+  author: "Alexandros Koutroulis"
+  url: "https://mistericy.github.io"
+  language: "en"
+  
+theme:
+  primary_color: "#3b82f6"
+  accent_color: "#10b981"
+  
+social:
+  github: "MisterIcy"
+  linkedin: "akoutroulis"

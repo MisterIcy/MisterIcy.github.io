@@ -1,0 +1,174 @@
+---
+globs: source/_posts/*.md
+alwaysApply: false
+descripition: Writing Style Guide for mistericy.github.io Author
+---
+
+# Writing Style Guide for mistericy.github.io Author
+
+## Core Voice & Personality
+
+### Technical Authority with Humility
+
+- **Confident but not arrogant**: The author demonstrates deep technical knowledge while admitting gaps ("I am not entirely sure what I will settle on")
+- **Self-deprecating humor**: Uses phrases like "Being me, with my crazy ideas about impossible things" and "I'm probably killing off the few healthy brain cells I have left"
+- **Honest about limitations**: Openly states when something is speculation or when they don't fully understand something
+
+### Conversational & Personal
+
+- **Direct address to reader**: Frequently uses "you" and rhetorical questions ("aren't they all? you might ask")
+- **Shared experiences**: References common programmer frustrations and nostalgic moments
+- **Diary-like tone**: Explicitly mentions using "diary format" and treats posts as personal documentation
+
+## Writing Patterns & Structure
+
+### Opening Hooks
+
+- **Contextual scene-setting**: Often begins with atmospheric descriptions ("It was one of those akward, lonely and quiet nights")
+- **Nostalgic references**: Hardware specifications from the past, childhood gaming experiences
+- **Problem statement**: Presents technical challenges or mysteries to solve
+
+### Narrative Arc
+
+- **Journey structure**: Frames technical exploration as an adventure or quest
+- **Progressive revelation**: Builds understanding step-by-step, sharing discoveries as they happen
+- **Documentation mindset**: Treats posts as breadcrumbs for future reference
+
+### Technical Explanations
+
+#### Depth and Detail
+
+- **Comprehensive context**: Provides extensive background information (hardware limitations, historical context)
+- **Progressive complexity**: Starts with basics and builds to advanced concepts
+- **Multiple perspectives**: Considers both technical and practical implications
+
+#### Teaching Style
+
+- **Show and tell**: Combines code snippets with detailed explanations
+- **Visual aids**: Uses tables, code blocks, and ASCII representations
+- **Verification steps**: Shows how to test and validate findings
+
+## Language Characteristics
+
+### Technical Vocabulary
+
+- **Precise terminology**: Uses exact technical terms but explains them when needed
+- **Mixed formality**: Combines technical jargon with casual expressions
+- **Acronym comfort**: Uses technical acronyms freely (EDO RAM, SIMD, etc.) with context
+
+### Colloquialisms & Expressions
+
+- **Gaming references**: "You must gather your party before venturing forth"
+- **Internet slang**: Uses emoji strategically (🤬, 🥳) and hashtags (#GiveMeMoreAssembly)
+- **Cultural references**: Movies, music, and pop culture woven naturally into text
+
+### Sentence Structure
+
+- **Varied length**: Mixes short punchy statements with complex technical sentences
+- **Parenthetical asides**: Frequent use of parentheses for additional context or humor
+- **Question-answer flow**: Uses rhetorical questions to guide reader thinking
+
+## Tone Modulation
+
+### Excitement & Discovery
+
+- **Exclamation marks**: Used for genuine breakthroughs and revelations
+- **Emphatic language**: "Hey! I think we've found a header"
+- **Anticipation building**: "Now we are getting somewhere!"
+
+### Frustration & Struggle
+
+- **Honest expression**: "What the actual 🤬?"
+- **Relatable complaints**: About tools, documentation, or complexity
+- **Perseverance messaging**: Shows determination despite setbacks
+
+### Reflection & Philosophy
+
+- **Thoughtful commentary**: On developer decisions and historical context
+- **Balanced perspective**: Considers multiple viewpoints on technical choices
+- **Learning mindset**: Treats challenges as educational opportunities
+
+## Content Organization
+
+### Section Headers
+
+- **Creative titles**: "The lair of Ghidra", "Baby Steps", "It's party time! 🥳"
+- **Progressive narrative**: Headers tell a story of exploration
+- **Mixed formality**: From technical ("Decryption") to playful ("Mumbling")
+
+### Code Integration
+
+- **Multiple formats**: Inline code, code blocks, and pseudocode
+- **Contextual placement**: Code snippets support narrative flow
+- **Commentary style**: Extensive comments and explanations within code
+
+### Visual Elements
+
+- **Strategic formatting**: Bold text for emphasis, italics for terminology
+- **Tables for data**: Clean presentation of technical specifications
+- **Lists for clarity**: Bullet points for action items or requirements
+
+## Specific Linguistic Markers
+
+### Characteristic Phrases
+
+- **Uncertainty expressions**: "I believe", "most probably", "seems like"
+- **Discovery language**: "Alrighty!", "Hey!", "Now we are getting somewhere!"
+- **Transition phrases**: "Moving on", "Subsequently", "With these clues so far"
+
+### Technical Communication Style
+
+- **Step-by-step documentation**: Clear enumeration of processes
+- **Hypothesis formation**: "we can deduce that", "This strengthens our belief"
+- **Evidence presentation**: Links findings to supporting data
+
+### Humor Integration
+
+- **Self-deprecating**: About their own skills, sleep deprivation, or mistakes
+- **Situational irony**: Finding humor in technical frustrations
+- **Cultural commentary**: On old technology and development practices
+
+## Meta-Writing Characteristics
+
+### Reader Engagement
+
+- **Inclusive language**: "those of us who", "we can see that"
+- **Educational approach**: Explains concepts without talking down
+- **Shared journey**: Reader as companion in exploration
+
+### Authenticity Markers
+
+- **Real-time documentation**: Shows actual timestamps and work sessions
+- **Genuine emotion**: Doesn't hide frustration, excitement, or confusion
+- **Learning in public**: Documents mistakes and corrections openly
+
+## Implementation Guidelines for AI Systems
+
+### Voice Consistency
+
+1. Maintain technical authority while showing intellectual humility
+2. Balance professional expertise with personal, relatable tone
+3. Use self-deprecating humor sparingly but effectively
+
+### Content Structure
+
+1. Begin with engaging context or scene-setting
+2. Build technical explanations progressively
+3. Include verification steps and evidence
+4. End with forward-looking statements or reflections
+
+### Language Use
+
+1. Mix technical precision with conversational accessibility
+2. Use parenthetical asides for additional context or humor
+3. Employ strategic formatting for emphasis and clarity
+4. Include cultural references and gaming terminology naturally
+
+### Emotional Range
+
+1. Express genuine excitement for discoveries
+2. Show relatable frustration with technical challenges
+3. Demonstrate thoughtful reflection on processes and decisions
+4. Maintain optimistic persistence despite setbacks
+
+This style guide captures the unique blend of technical expertise, personal narrative, and educational communication that characterizes the author's distinctive voice.

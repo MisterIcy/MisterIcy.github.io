@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>About Page with Language Chart Integration</title>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <style>
+        /* Your existing styles would go here */
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f8fafc;
+            margin: 0;
+            padding: 20px;
+        }
+        
+        .about-section {
+            max-width: 4xl;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+        
+        .language-skills-section {
+            background: white;
+            border-radius: 12px;
+            padding: 2rem;
+            margin: 2rem 0;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+        
+        .section-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: #1e293b;
+            margin-bottom: 1rem;
+            text-align: center;
+        }
+        
+        .chart-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 400px;
+        }
+        
+        .chart-controls {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        
+        .chart-btn {
+            padding: 8px 16px;
+            border: 1px solid #e2e8f0;
+            background: white;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 14px;
+        }
+        
+        .chart-btn:hover {
+            background: #f1f5f9;
+        }
+        
+        .chart-btn.active {
+            background: #3b82f6;
+            color: white;
+            border-color: #3b82f6;
+        }
+        
+        .tooltip {
+            position: absolute;
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 14px;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.2s;
+            z-index: 1000;
+        }
+        
+        .legend {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            justify-content: center;
+            margin-top: 20px;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 12px;
+            color: #64748b;
+        }
+        
+        .legend-color {
+            width: 12px;
+            height: 12px;
+            border-radius: 2px;
+        }
+    </style>
+</head>
+<body>
+    <div class="about-section">
+        <!-- Your existing about content would go here -->
+        <h1>About Me</h1>
+        <p>I'm a passionate technologist with a deep interest in reverse engineering...</p>
+        
+        <!-- New Language Skills Section -->
+        <div class="language-skills-section">
+            <h2 class="section-title">Programming Languages & Technologies</h2>
+            <p style="text-align: center; color: #64748b; margin-bottom: 2rem;">
+                A breakdown of the languages and technologies I work with, based on my codebase analysis.
+            </p>
+            
+            <div class="chart-controls">
+                <button class="chart-btn active" data-chart="donut">Donut Chart</button>
+                <button class="chart-btn" data-chart="treemap">Treemap</button>
+                <button class="chart-btn" data-chart="bar">Bar Chart</button>
+            </div>
+            
+            <div class="chart-container">
+                <svg id="language-chart" width="500" height="400"></svg>
+            </div>
+            
+            <div class="legend" id="language-legend"></div>
+        </div>
+        
+        <!-- Rest of your about content -->
+        <div>
+            <h2>What I Write About</h2>
+            <p>More content here...</p>
+        </div>
+    </div>
+    
+    <div class="tooltip" id="tooltip"></div>
+
+    <script>
+        // Your language data
+        const languageData = [
+            {"name": "PHP", "percent": 38.12, "color": "#4F5D95"},
+            {"name": "C#", "percent": 10.69, "color": "#178600"},
+            {"name": "JavaScript", "percent": 10.21, "color": "#f1e05a"},
+            {"name": "YAML", "percent": 9.83, "color": "#cb171e"},
+            {"name": "Markdown", "percent": 5.58, "color": "#083fa1"},
+            {"name": "JSON", "percent": 2.89, "color": "#292929"},
+            {"name": "TypeScript", "percent": 2.65, "color": "#3178c6"},
+            {"name": "Smarty", "percent": 2.05, "color": "#f0c040"},
+            {"name": "SQL", "percent": 1.6, "color": "#e38c00"},
+            {"name": "Text", "percent": 1.57, "color": "#16ce40"},
+            {"name": "C", "percent": 1.45, "color": "#555555"},
+            {"name": "Gherkin", "percent": 1.3, "color": "#5B2063"},
+            {"name": "Other", "percent": 1.21, "color": "#dc9658"},
+            {"name": "C++", "percent": 1.02, "color": "#f34b7d"},
+            {"name": "Docker", "percent": 0.99, "color": "#d62728"},
+            {"name": "XML", "percent": 0.97, "color": "#0060ac"},
+            {"name": "HTML", "percent": 0.84, "color": "#e34c26"},
+            {"name": "Vue.js", "percent": 0.72, "color": "#9467bd"},
+            {"name": "Bash", "percent": 0.72, "color": "#8c564b"},
+            {"name": "Shell Script", "percent": 0.7, "color": "#aec7e8"}
+        ];
+
+        // Filter for better visualization
+        const filteredData = languageData.filter(d => d.percent > 0.5);
+        
+        const width = 500;
+        const height = 400;
+        const radius = Math.min(width, height) / 2 - 20;
+        
+        const svg = d3.select("#language-chart");
+        const tooltip = d3.select("#tooltip");
+        
+        function createDonutChart() {
+            svg.selectAll("*").remove();
+            
+            const g = svg.append("g")
+                .attr("transform", `translate(${width/2}, ${height/2})`);
+            
+            const pie = d3.pie()
+                .value(d => d.percent)
+                .sort(null);
+            
+            const arc = d3.arc()
+                .innerRadius(radius * 0.4)
+                .outerRadius(radius);
+            
+            const arcs = g.selectAll(".arc")
+                .data(pie(filteredData))
+                .enter().append("g")
+                .attr("class", "arc");
+            
+            arcs.append("path")
+                .attr("d", arc)
+                .attr("fill", d => d.data.color)
+                .attr("stroke", "white")
+                .attr("stroke-width", 2)
+                .on("mouseover", function(event, d) {
+                    d3.select(this).attr("opacity", 0.8);
+                    tooltip.transition().duration(200).style("opacity", 1);
+                    tooltip.html(`${d.data.name}<br/>${d.data.percent}%`)
+                        .style("left", (event.pageX + 10) + "px")
+                        .style("top", (event.pageY - 10) + "px");
+                })
+                .on("mouseout", function() {
+                    d3.select(this).attr("opacity", 1);
+                    tooltip.transition().duration(200).style("opacity", 0);
+                });
+            
+            arcs.append("text")
+                .attr("transform", d => `translate(${arc.centroid(d)})`)
+                .attr("text-anchor", "middle")
+                .attr("font-size", "12px")
+                .attr("font-weight", "bold")
+                .attr("fill", "white")
+                .text(d => d.data.percent > 5 ? `${d.data.percent}%` : "");
+        }
+        
+        function createTreemap() {
+            svg.selectAll("*").remove();
+            
+            const treemap = d3.treemap()
+                .size([width, height])
+                .padding(2);
+            
+            const root = d3.hierarchy({children: languageData})
+                .sum(d => d.percent);
+            
+            treemap(root);
+            
+            const cells = svg.selectAll(".cell")
+                .data(root.leaves())
+                .enter().append("g")
+                .attr("class", "cell")
+                .attr("transform", d => `translate(${d.x0},${d.y0})`);
+            
+            cells.append("rect")
+                .attr("width", d => d.x1 - d.x0)
+                .attr("height", d => d.y1 - d.y0)
+                .attr("fill", d => d.data.color)
+                .attr("stroke", "white")
+                .attr("stroke-width", 1)
+                .on("mouseover", function(event, d) {
+                    d3.select(this).attr("opacity", 0.8);
+                    tooltip.transition().duration(200).style("opacity", 1);
+                    tooltip.html(`${d.data.name}<br/>${d.data.percent}%`)
+                        .style("left", (event.pageX + 10) + "px")
+                        .style("top", (event.pageY - 10) + "px");
+                })
+                .on("mouseout", function() {
+                    d3.select(this).attr("opacity", 1);
+                    tooltip.transition().duration(200).style("opacity", 0);
+                });
+            
+            cells.append("text")
+                .attr("x", d => (d.x1 - d.x0) / 2)
+                .attr("y", d => (d.y1 - d.y0) / 2)
+                .attr("text-anchor", "middle")
+                .attr("dominant-baseline", "middle")
+                .attr("font-size", d => Math.min(12, (d.x1 - d.x0) / 6))
+                .attr("fill", "white")
+                .attr("font-weight", "bold")
+                .text(d => d.data.percent > 1 ? d.data.name : "");
+        }
+        
+        function createBarChart() {
+            svg.selectAll("*").remove();
+            
+            const margin = {top: 20, right: 30, bottom: 40, left: 40};
+            const chartWidth = width - margin.left - margin.right;
+            const chartHeight = height - margin.top - margin.bottom;
+            
+            const g = svg.append("g")
+                .attr("transform", `translate(${margin.left},${margin.top})`);
+            
+            const x = d3.scaleBand()
+                .domain(filteredData.map(d => d.name))
+                .range([0, chartWidth])
+                .padding(0.1);
+            
+            const y = d3.scaleLinear()
+                .domain([0, d3.max(filteredData, d => d.percent)])
+                .range([chartHeight, 0]);
+            
+            g.append("g")
+                .attr("transform", `translate(0,${chartHeight})`)
+                .call(d3.axisBottom(x))
+                .selectAll("text")
+                .attr("transform", "rotate(-45)")
+                .style("text-anchor", "end");
+            
+            g.append("g")
+                .call(d3.axisLeft(y));
+            
+            g.selectAll(".bar")
+                .data(filteredData)
+                .enter().append("rect")
+                .attr("class", "bar")
+                .attr("x", d => x(d.name))
+                .attr("width", x.bandwidth())
+                .attr("y", d => y(d.percent))
+                .attr("height", d => chartHeight - y(d.percent))
+                .attr("fill", d => d.color)
+                .on("mouseover", function(event, d) {
+                    d3.select(this).attr("opacity", 0.8);
+                    tooltip.transition().duration(200).style("opacity", 1);
+                    tooltip.html(`${d.name}<br/>${d.percent}%`)
+                        .style("left", (event.pageX + 10) + "px")
+                        .style("top", (event.pageY - 10) + "px");
+                })
+                .on("mouseout", function() {
+                    d3.select(this).attr("opacity", 1);
+                    tooltip.transition().duration(200).style("opacity", 0);
+                });
+        }
+        
+        function updateLegend() {
+            const legend = d3.select("#language-legend");
+            legend.selectAll("*").remove();
+            
+            const legendItems = legend.selectAll(".legend-item")
+                .data(filteredData)
+                .enter().append("div")
+                .attr("class", "legend-item");
+            
+            legendItems.append("div")
+                .attr("class", "legend-color")
+                .style("background-color", d => d.color);
+            
+            legendItems.append("span")
+                .text(d => `${d.name} (${d.percent}%)`);
+        }
+        
+        // Chart switching
+        d3.selectAll(".chart-btn").on("click", function() {
+            d3.selectAll(".chart-btn").classed("active", false);
+            d3.select(this).classed("active", true);
+            
+            const chartType = d3.select(this).attr("data-chart");
+            
+            switch(chartType) {
+                case 'donut':
+                    createDonutChart();
+                    break;
+                case 'treemap':
+                    createTreemap();
+                    break;
+                case 'bar':
+                    createBarChart();
+                    break;
+            }
+            
+            updateLegend();
+        });
+        
+        // Initialize
+        createDonutChart();
+        updateLegend();
+    </script>
+</body>
+</html>

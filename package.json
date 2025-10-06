@@ -1,27 +1,43 @@
 {
-  "name": "hexo-site",
-  "version": "0.0.0",
-  "private": true,
+  "name": "cogsworth",
+  "version": "1.0.0",
+  "main": "index.js",
   "scripts": {
-    "build": "hexo generate",
-    "clean": "hexo clean",
-    "deploy": "hexo deploy",
-    "server": "hexo server"
+    "dev": "tsx src/index.ts",
+    "start": "tsx src/index.ts",
+    "build": "tsx src/cli/build.ts",
+    "serve": "npx serve dist -p 8080",
+    "preview": "npm run build && npm run serve",
+    "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "hexo": {
-    "version": "7.3.0"
-  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
   "dependencies": {
-    "hexo": "^7.3.0",
-    "hexo-footnote": "^1.0.4",
-    "hexo-generator-archive": "^2.0.0",
-    "hexo-generator-category": "^2.0.0",
-    "hexo-generator-index": "^4.0.0",
-    "hexo-generator-sitemap": "^3.0.1",
-    "hexo-generator-tag": "^2.0.0",
-    "hexo-renderer-ejs": "^2.0.0",
-    "hexo-renderer-marked": "^6.3.0",
-    "hexo-renderer-stylus": "^3.0.1",
-    "hexo-server": "^3.0.0"
+    "@tailwindcss/typography": "^0.5.10",
+    "@types/js-yaml": "^4.0.9",
+    "autoprefixer": "^10.4.16",
+    "chokidar": "^3.5.3",
+    "commander": "^14.0.1",
+    "gray-matter": "^4.0.3",
+    "handlebars": "^4.7.8",
+    "highlight.js": "^11.9.0",
+    "highlightjs-line-numbers.js": "^2.9.0",
+    "js-yaml": "^4.1.0",
+    "marked": "^9.1.6",
+    "marked-highlight": "^2.0.1",
+    "postcss": "^8.4.32",
+    "tailwindcss": "^3.3.6",
+    "ws": "^8.14.2"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.3",
+    "@types/node": "^24.6.2",
+    "@types/prismjs": "^1.26.5",
+    "@types/ws": "^8.18.1",
+    "ts-node": "^10.9.2",
+    "tsx": "^4.20.6",
+    "typescript": "^5.9.3"
   }
 }
