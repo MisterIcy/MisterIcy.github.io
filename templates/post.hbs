@@ -1,28 +1,5 @@
 {{> head pageTitle=(concat post.title " - " title)}}
 
-<!-- SEO Meta Tags -->
-<meta name="description" content="{{post.excerpt}}">
-<meta name="keywords" content="{{#if post.tags}}{{join post.tags ", "}}{{/if}}">
-<meta name="robots" content="index, follow">
-
-{{> meta 
-    ogType="article"
-    ogUrl=postUrl
-    ogTitle=post.title
-    ogDescription=post.excerpt
-    ogImage=postImage
-    ogSiteName=title
-    twitterUrl=postUrl
-    twitterTitle=post.title
-    twitterDescription=post.excerpt
-    twitterImage=postImage
-    isArticle=true
-    articlePublishedTime=post.date
-    articleModifiedTime=post.date
-    articleAuthor=author
-    articleSection=articleSection
-    articleTags=post.tags
-}}
 
 {{> structured-data structuredData=true isArticle=true}}
 <body class="bg-white text-slate-900 dark:bg-bg-01 dark:text-slate-100 leading-relaxed">

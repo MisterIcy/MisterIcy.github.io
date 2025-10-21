@@ -4,6 +4,25 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{pageTitle}}</title>
+    {{> meta 
+        ogType="article"
+        ogUrl=postUrl
+        ogTitle=post.title
+        ogDescription=post.excerpt
+        ogImage=postImage
+        ogSiteName=title
+        twitterUrl=postUrl
+        twitterTitle=post.title
+        twitterDescription=post.excerpt
+        twitterImage=postImage
+        isArticle=true
+        articlePublishedTime=post.date
+        articleModifiedTime=post.date
+        articleAuthor=author
+        articleSection=articleSection
+        articleTags=post.tags
+    }}
+
     <meta name="description" content="{{description}}">
     <meta name="author" content="{{author}}">
     <meta name="language" content="{{language}}">
