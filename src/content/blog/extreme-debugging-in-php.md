@@ -1,6 +1,6 @@
 ---
-title: 'Extreme Debugging in PHP: Building Custom Debug Binaries with Docker and GDB'
-description: 'Learn how to tackle the most elusive PHP bugs using custom-built debug binaries, Docker, GDB, and PHPUnit. A comprehensive deep dive into extreme debugging techniques for real-world PHP development scenarios.'
+title: 'Extreme PHP Debugging: GDB & Docker Guide'
+description: 'Learn how to debug PHP crashes using custom debug binaries, Docker, and GDB. Master extreme PHP debugging techniques when standard tools fail.'
 pubDate: '2022-12-01'
 updatedDate: '2026-01-18'
 heroImage: '../../assets/php-gdb.webp'
@@ -37,13 +37,13 @@ Some of my PHPUnit tests were crashing unexpectedly while trying to generate cod
 
 What the actual 🤬?
 
-This is a story about **extreme PHP debugging**—when standard debugging tools fail and you need to dive deep into PHP's internals using custom debug binaries, Docker containers, and the GNU Debugger (GDB) to track down crashes that occur at the C level.
+This is a story about **extreme PHP debugging**—when standard PHP debugging tools fail and you need to dive deep into PHP's internals using custom debug binaries, Docker containers, and the GNU Debugger (GDB) to track down crashes that occur at the C level.
 
 So, first things first. How can you debug your tests, or even PHPUnit in such a case? The answer is easy. You don’t because you can’t. Such behavior alludes that something quite sinister lurks in your code. Something that crashes deep inside PHP’s code. A statement, whose existence, creates a fatal error.
 
 But we aren’t here to talk about what you can’t do. We are here to talk about what you can, actually, do.
 
-## You can debug PHP
+## Advanced PHP Debugging Techniques
 
 I’ve lost count how many times I stumbled across a similar issue. Normally, I would totally ignore the issue. I would try my tests one by one in order to determine which one is the problematic. I would surrender, had I not been able to pinpoint the problematic piece of code. But I am not that person and I suspect that you aren’t that person as well. So… Let’s debug it.
 
@@ -197,7 +197,7 @@ RUN mkdir -p /var/www/html/
 WORKDIR /var/www/html
 ```
 
-## It’s party time! 🥳
+## Debugging PHP Crashes with GDB
 
 If you are observant enough, you’ll already have noticed that I added [`gdb`](https://en.wikipedia.org/wiki/GNU_Debugger) in the packages I am fetching into our image. We’ll need the GNU debugger in order to make PHP crash, then investigate why it crashed.
 
@@ -227,7 +227,7 @@ It took me hours to understand what the problem was. PHP was actually trying to 
 
 Eventually, after hours and hours of examing the values of structures and pointers, reading through C code and trying to follow the execution path, I pinpointed the source of all evil. It was a relatively safe `shell_exec`, hidden in a destructor. It seems that, somehow; don’t ask, I never understood; PHP tried to execute this destructor and then all hell broke loose.
 
-Moral of the story? I should have listened to [Psalm](https://psalm.dev/), when it warned me that this piece of code was [forbidden](https://psalm.dev/docs/running_psalm/issues/ForbiddenCode/). But more importantly, when standard PHP debugging tools fail, you now know how to build custom debug binaries, use GDB to trace crashes, and debug PHP at the C level.
+Moral of the story? I should have listened to [Psalm](https://psalm.dev/), when it warned me that this piece of code was [forbidden](https://psalm.dev/docs/running_psalm/issues/ForbiddenCode/). But more importantly, when standard PHP debugging tools fail, you now know how to build custom PHP debug binaries, use GDB to trace crashes, and debug PHP internals at the C level.
 
 ## Key Takeaways
 
@@ -238,4 +238,4 @@ Moral of the story? I should have listened to [Psalm](https://psalm.dev/), when 
 - **Static analysis tools** like Psalm can help prevent these issues before they occur
 - When PHPUnit crashes silently, the problem often lies in PHP's C internals, not your PHP code
 
-This extreme debugging approach isn't for everyday issues, but when you're facing crashes that standard debugging tools can't handle, building custom debug binaries and using GDB is your path forward.
+This extreme PHP debugging approach isn't for everyday issues, but when you're facing crashes that standard PHP debugging tools can't handle, building custom PHP debug binaries and using GDB is your path forward.
