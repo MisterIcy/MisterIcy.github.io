@@ -9,12 +9,12 @@ export const SITE_URL = 'https://mistericy.github.io';
 
 // Author information
 export const SITE_AUTHOR = {
-	name: 'MisterIcy',
+	name: 'Alexandros Koutroulis',
 	bio: 'Software developer sharing war stories and reflections from the trenches of software development.',
 	// Add your social profiles here
 	social: {
-		twitter: '', // Add your Twitter/X handle (e.g., '@yourhandle')
-		linkedin: '', // Add your LinkedIn profile URL
+		twitter: '@icydemon', // Add your Twitter/X handle (e.g., '@yourhandle')
+		linkedin: 'https://www.linkedin.com/in/akoutroulis/', // LinkedIn profile URL - Update with your actual LinkedIn URL
 		github: 'MisterIcy', // GitHub username
 		website: SITE_URL,
 	},
