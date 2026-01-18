@@ -10,7 +10,12 @@ export const SITE_URL = 'https://mistericy.github.io';
 // Author information
 export const SITE_AUTHOR = {
 	name: 'Alexandros Koutroulis',
-	bio: 'Software developer sharing war stories and reflections from the trenches of software development.',
+	bio: 'Senior Software Engineer with over 10 years of professional experience and nearly 30 years of coding experience. Specializing in backend engineering, debugging, reverse engineering, and SaaS architecture. Currently building AI platforms and sharing technical insights from the trenches.',
+	jobTitle: 'Senior Software Engineer',
+	worksFor: {
+		name: 'Epignosis',
+		url: 'https://www.epignosishq.com',
+	},
 	// Add your social profiles here
 	social: {
 		twitter: '@icydemon', // Add your Twitter/X handle (e.g., '@yourhandle')
@@ -21,6 +26,6 @@ export const SITE_AUTHOR = {
 };
 
 // Social media handles for meta tags
-export const SITE_TWITTER_HANDLE = ''; // Add your Twitter/X handle (e.g., '@yourhandle')
+export const SITE_TWITTER_HANDLE = '@icydemon'; // Add your Twitter/X handle (e.g., '@yourhandle')
 export const SITE_FACEBOOK_PAGE = ''; // Add your Facebook page URL if applicable
-export const SITE_LINKEDIN = ''; // Add your LinkedIn profile URL if applicable
+export const SITE_LINKEDIN = 'https://www.linkedin.com/in/akoutroulis/'; // Add your LinkedIn profile URL if applicable

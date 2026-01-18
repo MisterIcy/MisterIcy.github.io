@@ -85,28 +85,86 @@ const buildSchema = () => {
 
 	// Handle multiple schema types (e.g., WebSite + Organization)
 	if (schemaTypes.includes('WebSite')) {
-		schemas.push({
+		const siteAuthorAny = SITE_AUTHOR as any;
+		const websiteSchema: any = {
 			'@context': 'https://schema.org',
 			'@type': 'WebSite',
 			name: SITE_NAME,
 			description: SITE_DESCRIPTION,
 			url: SITE_URL,
+			inLanguage: SITE_LOCALE,
 			publisher: {
 				'@type': 'Organization',
 				name: SITE_NAME,
+				logo: {
+					'@type': 'ImageObject',
+					url: new URL('/favicon.svg', Astro.site).toString(),
+				},
 			},
-		});
+			// Add author/founder information for E-E-A-T
+			author: {
+				'@type': 'Person',
+				name: SITE_AUTHOR.name,
+				...(siteAuthorAny.jobTitle && {
+					jobTitle: siteAuthorAny.jobTitle,
+				}),
+				url: SITE_AUTHOR.social.website,
+			},
+			// Add search functionality for better SEO
+			potentialAction: {
+				'@type': 'SearchAction',
+				target: {
+					'@type': 'EntryPoint',
+					urlTemplate: `${SITE_URL}/blog/?q={search_term_string}`,
+				},
+				'query-input': 'required name=search_term_string',
+			},
+		};
+		schemas.push(websiteSchema);
 	}
 
 	if (schemaTypes.includes('Organization')) {
-		schemas.push({
+		const siteAuthorAny = SITE_AUTHOR as any;
+		const organizationSchema: any = {
 			'@context': 'https://schema.org',
 			'@type': 'Organization',
 			name: SITE_NAME,
 			description: SITE_DESCRIPTION,
 			url: SITE_URL,
-			logo: new URL('/favicon.svg', Astro.site).toString(),
-		});
+			logo: {
+				'@type': 'ImageObject',
+				url: new URL('/favicon.svg', Astro.site).toString(),
+			},
+			// Add founder information for E-E-A-T
+			founder: {
+				'@type': 'Person',
+				name: SITE_AUTHOR.name,
+				description: SITE_AUTHOR.bio,
+				...(siteAuthorAny.jobTitle && {
+					jobTitle: siteAuthorAny.jobTitle,
+				}),
+				...(siteAuthorAny.worksFor && {
+					worksFor: {
+						'@type': 'Organization',
+						name: siteAuthorAny.worksFor.name,
+						...(siteAuthorAny.worksFor.url && {
+							url: siteAuthorAny.worksFor.url,
+						}),
+					},
+				}),
+				url: SITE_AUTHOR.social.website,
+				sameAs: [
+					...(SITE_AUTHOR.social.github
+						? [`https://github.com/${SITE_AUTHOR.social.github}`]
+						: []),
+					...(SITE_AUTHOR.social.twitter
+						? [`https://twitter.com/${SITE_AUTHOR.social.twitter.replace('@', '')}`]
+						: []),
+					...(SITE_AUTHOR.social.linkedin ? [SITE_AUTHOR.social.linkedin] : []),
+				].filter(Boolean),
+			},
+		};
+		schemas.push(organizationSchema);
 	}
 
 	if (schema?.type === 'BlogPosting' && schema.post) {
@@ -116,7 +174,63 @@ const buildSchema = () => {
 			? new URL(post.data.heroImage.src, Astro.url)
 			: imageURL;
 
-		// BlogPosting schema
+		// Build comprehensive author schema with E-E-A-T signals
+		const authorName = post.data.author?.name || SITE_AUTHOR.name;
+		const authorSocial = post.data.author?.social || SITE_AUTHOR.social;
+		const siteAuthorAny = SITE_AUTHOR as any;
+		const authorSchema: any = {
+			'@type': 'Person',
+			name: authorName,
+			description: post.data.author?.bio || SITE_AUTHOR.bio,
+			...(siteAuthorAny.jobTitle && {
+				jobTitle: siteAuthorAny.jobTitle,
+			}),
+			...(siteAuthorAny.worksFor && {
+				worksFor: {
+					'@type': 'Organization',
+					name: siteAuthorAny.worksFor.name,
+					...(siteAuthorAny.worksFor.url && {
+						url: siteAuthorAny.worksFor.url,
+					}),
+				},
+			}),
+			...(authorSocial?.website && {
+				url: authorSocial.website,
+			}),
+			sameAs: [
+				...(authorSocial?.github
+					? [`https://github.com/${authorSocial.github}`]
+					: []),
+				...(authorSocial?.twitter
+					? [`https://twitter.com/${authorSocial.twitter.replace('@', '')}`]
+					: []),
+				...(authorSocial?.linkedin ? [authorSocial.linkedin] : []),
+			].filter(Boolean),
+		};
+
+		// Enhanced publisher Organization with founder information
+		const siteAuthorForPublisher = SITE_AUTHOR as any;
+		const publisherSchema: any = {
+			'@type': 'Organization',
+			name: SITE_NAME,
+			description: SITE_DESCRIPTION,
+			url: SITE_URL,
+			logo: {
+				'@type': 'ImageObject',
+				url: new URL('/favicon.svg', Astro.site).toString(),
+			},
+			// Add founder for E-E-A-T
+			founder: {
+				'@type': 'Person',
+				name: SITE_AUTHOR.name,
+				...(siteAuthorForPublisher.jobTitle && {
+					jobTitle: siteAuthorForPublisher.jobTitle,
+				}),
+				url: SITE_AUTHOR.social.website,
+			},
+		};
+
+		// BlogPosting schema with enhanced E-E-A-T signals
 		const blogPosting: any = {
 			'@context': 'https://schema.org',
 			'@type': 'BlogPosting',
@@ -125,28 +239,18 @@ const buildSchema = () => {
 			image: heroImageURL?.toString(),
 			datePublished: post.data.pubDate.toISOString(),
 			dateModified: (post.data.updatedDate || post.data.pubDate).toISOString(),
-			author: {
-				'@type': 'Person',
-				name: post.data.author?.name || SITE_AUTHOR.name,
-				...(post.data.author?.social?.website && {
-					url: post.data.author.social.website,
-				}),
-				...(post.data.author?.social?.twitter && {
-					sameAs: `https://twitter.com/${post.data.author.social.twitter.replace('@', '')}`,
-				}),
-			},
-			publisher: {
-				'@type': 'Organization',
-				name: SITE_NAME,
-				logo: {
-					'@type': 'ImageObject',
-					url: new URL('/favicon.svg', Astro.site).toString(),
-				},
-			},
+			author: authorSchema,
+			publisher: publisherSchema,
 			mainEntityOfPage: {
 				'@type': 'WebPage',
 				'@id': postURL.toString(),
 			},
+			// Add language for better international SEO
+			inLanguage: SITE_LOCALE,
+			// Add article section if category exists
+			...(post.data.category && {
+				articleSection: post.data.category,
+			}),
 		};
 
 		if (post.data.tags && post.data.tags.length > 0) {
@@ -155,7 +259,7 @@ const buildSchema = () => {
 
 		schemas.push(blogPosting);
 
-		// Article schema (additional)
+		// Article schema (additional) - using same author and publisher schemas for consistency
 		const articleSchema = {
 			'@context': 'https://schema.org',
 			'@type': 'Article',
@@ -164,24 +268,35 @@ const buildSchema = () => {
 			image: heroImageURL?.toString(),
 			datePublished: post.data.pubDate.toISOString(),
 			dateModified: (post.data.updatedDate || post.data.pubDate).toISOString(),
-			author: {
-				'@type': 'Person',
-				name: post.data.author?.name || SITE_AUTHOR.name,
-			},
-			publisher: {
-				'@type': 'Organization',
-				name: SITE_NAME,
-			},
+			author: authorSchema,
+			publisher: publisherSchema,
+			inLanguage: SITE_LOCALE,
+			...(post.data.category && {
+				articleSection: post.data.category,
+			}),
 		};
 		schemas.push(articleSchema);
 	}
 
 	if (schema?.type === 'Person' || schemaTypes.includes('Person')) {
+		const siteAuthorAny = SITE_AUTHOR as any;
 		schemas.push({
 			'@context': 'https://schema.org',
 			'@type': 'Person',
 			name: SITE_AUTHOR.name,
 			description: SITE_AUTHOR.bio,
+			...(siteAuthorAny.jobTitle && {
+				jobTitle: siteAuthorAny.jobTitle,
+			}),
+			...(siteAuthorAny.worksFor && {
+				worksFor: {
+					'@type': 'Organization',
+					name: siteAuthorAny.worksFor.name,
+					...(siteAuthorAny.worksFor.url && {
+						url: siteAuthorAny.worksFor.url,
+					}),
+				},
+			}),
 			url: SITE_AUTHOR.social.website,
 			sameAs: [
 				...(SITE_AUTHOR.social.github
