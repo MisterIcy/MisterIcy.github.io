@@ -1,5 +1,6 @@
 ---
-import AboutHeroImage from '../assets/blog-placeholder-about.jpg';
+import { Image } from 'astro:assets';
+import AboutHeroImage from '../assets/profile.webp';
 import BaseHead from '../components/BaseHead.astro';
 import SEOHead from '../components/SEOHead.astro';
 import Footer from '../components/Footer.astro';
@@ -65,9 +66,7 @@ const aboutKeywords = [
 					<!-- Avatar Placeholder -->
 					<div class="flex-shrink-0">
 						<div class="w-32 h-32 md:w-40 md:h-40 rounded-full bg-slate-700 flex items-center justify-center overflow-hidden border-4 border-accent/30">
-							<svg class="w-16 h-16 md:w-20 md:h-20 text-muted" fill="currentColor" viewBox="0 0 20 20">
-								<path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd" />
-							</svg>
+							<Image src={AboutHeroImage} alt="Alexandros Koutroulis" class="w-full h-full object-cover" />
 						</div>
 					</div>
 					
