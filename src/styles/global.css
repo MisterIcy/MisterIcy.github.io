@@ -1,155 +1,585 @@
-/*
-  The CSS in this style tag is based off of Bear Blog's default CSS.
-  https://github.com/HermanMartinus/bearblog/blob/297026a877bc2ab2b3bdfbd6b9f7961c350917dd/templates/styles/blog/default.css
-  License MIT: https://github.com/HermanMartinus/bearblog/blob/master/LICENSE.md
- */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
-:root {
-	--accent: #2337ff;
-	--accent-dark: #000d8a;
-	--black: 15, 18, 25;
-	--gray: 96, 115, 159;
-	--gray-light: 229, 233, 240;
-	--gray-dark: 34, 41, 57;
-	--gray-gradient: rgba(var(--gray-light), 50%), #fff;
-	--box-shadow:
-		0 2px 6px rgba(var(--gray), 25%), 0 8px 24px rgba(var(--gray), 33%), 0 16px 32px
-		rgba(var(--gray), 33%);
-}
-@font-face {
-	font-family: "Atkinson";
-	src: url("/fonts/atkinson-regular.woff") format("woff");
-	font-weight: 400;
-	font-style: normal;
-	font-display: swap;
-}
-@font-face {
-	font-family: "Atkinson";
-	src: url("/fonts/atkinson-bold.woff") format("woff");
-	font-weight: 700;
-	font-style: normal;
-	font-display: swap;
-}
-body {
-	font-family: "Atkinson", sans-serif;
-	margin: 0;
-	padding: 0;
-	text-align: left;
-	background: linear-gradient(var(--gray-gradient)) no-repeat;
-	background-size: 100% 600px;
-	word-wrap: break-word;
-	overflow-wrap: break-word;
-	color: rgb(var(--gray-dark));
-	font-size: 20px;
-	line-height: 1.7;
-}
-main {
-	width: 720px;
-	max-width: calc(100% - 2em);
-	margin: auto;
-	padding: 3em 1em;
-}
-h1,
-h2,
-h3,
-h4,
-h5,
-h6 {
-	margin: 0 0 0.5rem 0;
-	color: rgb(var(--black));
-	line-height: 1.2;
-}
-h1 {
-	font-size: 3.052em;
-}
-h2 {
-	font-size: 2.441em;
-}
-h3 {
-	font-size: 1.953em;
-}
-h4 {
-	font-size: 1.563em;
-}
-h5 {
-	font-size: 1.25em;
-}
-strong,
-b {
-	font-weight: 700;
-}
-a {
-	color: var(--accent);
-}
-a:hover {
-	color: var(--accent);
-}
-p {
-	margin-bottom: 1em;
-}
-.prose p {
-	margin-bottom: 2em;
-}
-textarea {
-	width: 100%;
-	font-size: 16px;
-}
-input {
-	font-size: 16px;
-}
-table {
-	width: 100%;
-}
-img {
-	max-width: 100%;
-	height: auto;
-	border-radius: 8px;
-}
-code {
-	padding: 2px 5px;
-	background-color: rgb(var(--gray-light));
-	border-radius: 2px;
-}
-pre {
-	padding: 1.5em;
-	border-radius: 8px;
-}
-pre > code {
-	all: unset;
-}
-blockquote {
-	border-left: 4px solid var(--accent);
-	padding: 0 0 0 20px;
-	margin: 0;
-	font-size: 1.333em;
-}
-hr {
-	border: none;
-	border-top: 1px solid rgb(var(--gray-light));
-}
-@media (max-width: 720px) {
-	body {
-		font-size: 18px;
-	}
-	main {
-		padding: 1em;
-	}
+/* Smooth transitions for theme switching */
+* {
+  transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease, fill 0.3s ease, stroke 0.3s ease;
 }
 
-.sr-only {
-	border: 0;
-	padding: 0;
-	margin: 0;
-	position: absolute !important;
-	height: 1px;
-	width: 1px;
-	overflow: hidden;
-	/* IE6, IE7 - a 0 height clip, off to the bottom right of the visible 1px box */
-	clip: rect(1px 1px 1px 1px);
-	/* maybe deprecated but we need to support legacy browsers */
-	clip: rect(1px, 1px, 1px, 1px);
-	/* modern browsers, clip-path works inwards from each corner */
-	clip-path: inset(50%);
-	/* added line to stop words getting smushed together (as they go onto separate lines and some screen readers do not understand line feeds as a space */
-	white-space: nowrap;
+/* Respect user's motion preferences */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    transition: none !important;
+  }
 }
+
+/* Custom styles */
+@layer components {
+  .btn {
+    @apply px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors;
+  }
+  
+  .card {
+    @apply bg-white dark:bg-slate-800 rounded-lg shadow-md border border-gray-200 dark:border-slate-700 p-6;
+  }
+  
+    .prose-custom {
+        @apply prose prose-lg max-w-none dark:prose-invert;
+    }
+    
+    /* Override Tailwind typography code styling */
+    .prose-custom code {
+        @apply bg-transparent text-inherit px-0 py-0;
+    }
+    
+    .prose-custom pre code {
+        @apply bg-transparent text-inherit px-0 py-0;
+    }
+    
+    /* Specific override for dark mode code blocks */
+    .prose-custom code:is(.dark *) {
+        background-color: transparent !important;
+        color: inherit !important;
+    }
+    
+    .prose-custom pre code:is(.dark *) {
+        background-color: transparent !important;
+        color: inherit !important;
+    }
+    
+    /* Code block styling */
+    .prose-custom pre {
+        @apply rounded-lg border border-slate-700 p-4 overflow-x-auto;
+    }
+    
+    .prose-custom pre code {
+        @apply bg-transparent;
+    }
+    
+    .prose-custom code {
+        @apply bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 px-1.5 py-0.5 rounded text-sm;
+    }
+    
+    /* Highlight.js overrides for better integration */
+    .hljs {
+        @apply bg-slate-900 text-slate-100 rounded-lg p-4;
+    }
+    
+    /* Remove line backgrounds from highlight.js */
+    .hljs-line {
+        background: none !important;
+    }
+    
+    /* Override any background colors on syntax elements */
+    .hljs-keyword,
+    .hljs-string,
+    .hljs-comment,
+    .hljs-number,
+    .hljs-variable,
+    .hljs-function,
+    .hljs-type,
+    .hljs-built_in,
+    .hljs-title,
+    .hljs-params,
+    .hljs-attr,
+    .hljs-attribute,
+    .hljs-tag,
+    .hljs-name,
+    .hljs-selector-tag,
+    .hljs-selector-id,
+    .hljs-selector-class,
+    .hljs-selector-attr,
+    .hljs-selector-pseudo,
+    .hljs-literal,
+    .hljs-symbol,
+    .hljs-bullet,
+    .hljs-code,
+    .hljs-deletion,
+    .hljs-addition,
+    .hljs-emphasis,
+    .hljs-strong {
+        background: none !important;
+        background-color: transparent !important;
+    }
+    
+    /* Override Tailwind's prose code backgrounds */
+    .prose code::before,
+    .prose code::after {
+        content: none !important;
+    }
+    
+    .prose pre code {
+        background: transparent !important;
+        background-color: transparent !important;
+        padding: 0 !important;
+        margin: 0 !important;
+    }
+    
+    /* Override the specific dark mode selector you mentioned */
+    .prose-custom code:is(.dark *) {
+        --tw-bg-opacity: 0 !important;
+        background-color: transparent !important;
+        --tw-text-opacity: 1 !important;
+        color: inherit !important;
+    }
+    
+    .prose-custom pre code:is(.dark *) {
+        --tw-bg-opacity: 0 !important;
+        background-color: transparent !important;
+        --tw-text-opacity: 1 !important;
+        color: inherit !important;
+    }
+    
+    /* Ensure code blocks have proper styling */
+    pre code.hljs {
+        @apply bg-slate-900 text-slate-100;
+    }
+    
+    /* highlight.js theme following official guidelines */
+    .hljs {
+        display: block;
+        overflow-x: auto;
+        padding: 0.5em;
+        @apply bg-slate-900 text-slate-100 rounded-lg border border-slate-700;
+    }
+    
+    /* Reset .subst to default color as required by theme guide */
+    .hljs,
+    .hljs-subst {
+        color: #e2e8f0; /* text-slate-100 */
+    }
+    
+    /* Custom highlight.js colors to match Tailwind theme */
+    .hljs-keyword,
+    .hljs-selector-tag,
+    .hljs-literal,
+    .hljs-section,
+    .hljs-link {
+        color: #60a5fa; /* text-blue-400 */
+        font-weight: bold;
+    }
+    
+    .hljs-string,
+    .hljs-title,
+    .hljs-name,
+    .hljs-type,
+    .hljs-attribute,
+    .hljs-symbol,
+    .hljs-bullet,
+    .hljs-addition {
+        color: #4ade80; /* text-green-400 */
+    }
+    
+    .hljs-comment,
+    .hljs-quote,
+    .hljs-deletion,
+    .hljs-meta {
+        color: #64748b; /* text-slate-500 */
+        font-style: italic;
+    }
+    
+    .hljs-number,
+    .hljs-literal {
+        color: #22d3ee; /* text-cyan-400 */
+    }
+    
+    .hljs-variable,
+    .hljs-template-variable,
+    .hljs-class .hljs-title {
+        color: #fde047; /* text-yellow-300 */
+    }
+    
+    .hljs-tag,
+    .hljs-name,
+    .hljs-attr {
+        color: #f87171; /* text-red-400 */
+    }
+    
+    .hljs-built_in,
+    .hljs-builtin-name {
+        color: #fb923c; /* text-orange-400 */
+    }
+    
+    .hljs-emphasis {
+        font-style: italic;
+    }
+    
+    .hljs-strong {
+        font-weight: bold;
+    }
+}
+
+/* Ensure dark mode works properly */
+@media (prefers-color-scheme: dark) {
+  :root {
+    color-scheme: dark;
+  }
+}
+
+/* Smooth theme transition overlay */
+.theme-transition {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  pointer-events: none;
+  z-index: 9999;
+  background: var(--theme-overlay, transparent);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.dark .bg-circuit {
+  position: relative;
+  background-color: #0b1220; /* bg-01 */
+  overflow: hidden; /* ensures the pseudo-elements don't spill out */
+}
+
+.bg-circuit::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(90deg, rgba(100,116,139,0.05) 1px, transparent 1px),
+    linear-gradient(180deg, rgba(100,116,139,0.05) 1px, transparent 1px);
+  background-size: 40px 40px;
+  z-index: 0;
+  opacity: 1;
+
+  /* Apply fade only to background layer */
+  -webkit-mask-image: radial-gradient(circle at center, black 70%, transparent 100%);
+  mask-image: radial-gradient(circle at center, black 70%, transparent 100%);
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-size: cover;
+  mask-size: cover;
+}
+
+.bg-circuit::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at 50% 30%, rgba(6,182,212,0.15), transparent 60%);
+  z-index: 1;
+}
+
+    .bg-circuit > * {
+      position: relative;
+      z-index: 2; /* keep text above background layers */
+    }
+
+    /* Terminal typewriter animation */
+    .typewriter {
+      display: inline;
+      white-space: normal;
+      word-wrap: break-word;
+    }
+
+    /* macOS title bar */
+    .mac .title-bar {
+      background: linear-gradient(to bottom, #e4e4e4, #cdcdcd);
+      height: 1.75rem;
+      display: flex;
+      align-items: center;
+      padding: 0 0.75rem;
+      border-bottom: 1px solid #a0a0a0;
+    }
+    .mac .title-dots { display: flex !important; }
+    .mac .title-dots span {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      display: inline-block;
+    }
+    .mac .title-dots span:nth-child(1) { background: #ff605c; }
+    .mac .title-dots span:nth-child(2) { background: #ffbd44; margin-left: 6px; }
+    .mac .title-dots span:nth-child(3) { background: #00ca4e; margin-left: 6px; }
+
+    /* Windows 95 style */
+    .windows .title-bar {
+      background: linear-gradient(to bottom, #000080, #000060);
+      color: white;
+      height: 1.75rem;
+      font-weight: bold;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 0.5rem;
+    }
+    .windows .win-title { display: flex !important; }
+    .windows .win-buttons span {
+      display: inline-block;
+      background: #c0c0c0;
+      color: black;
+      border: 2px solid #808080;
+      width: 16px;
+      height: 16px;
+      line-height: 10px;
+      text-align: center;
+      margin-left: 3px;
+      font-size: 10px;
+    }
+
+    /* Linux (GNOME-like) */
+    .linux .title-bar {
+      background: #2e3436;
+      color: #eee;
+      height: 1.75rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 0.5rem;
+      font-size: 0.875rem;
+    }
+    .linux .linux-title { display: flex !important; }
+    .linux .window-buttons span {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      display: inline-block;
+      margin-left: 6px;
+    }
+    .linux .window-buttons span:nth-child(1) { background: #4e9a06; }
+    .linux .window-buttons span:nth-child(2) { background: #c4a000; }
+    .linux .window-buttons span:nth-child(3) { background: #cc0000; }
+
+    /* Override highlight.js styles to match our design */
+    .hljs {
+      background: none !important;
+      border: none !important;
+      padding: 0 !important;
+      line-height: inherit !important;
+      font-size: inherit !important;
+    }
+
+    .hljs-line {
+      background: none !important;
+    }
+
+    .hljs-keyword,
+    .hljs-selector-tag,
+    .hljs-literal,
+    .hljs-section,
+    .hljs-link,
+    .hljs-function .hljs-keyword,
+    .hljs-subst {
+      background: none !important;
+    }
+
+    /* Hide scrollbars for tag containers */
+    .scrollbar-none {
+      scrollbar-width: none; /* Firefox */
+      -ms-overflow-style: none; /* Internet Explorer 10+ */
+    }
+    
+    .scrollbar-none::-webkit-scrollbar {
+      display: none; /* WebKit */
+    }
+    
+    /* Smooth scrolling for touch devices */
+    .scrollbar-none {
+      -webkit-overflow-scrolling: touch;
+    }
+    
+    /* Simple tags container - no 3D effects */
+    
+    /* Simple scroll indicators */
+    .tags-scroll-left,
+    .tags-scroll-right {
+      z-index: 2;
+      pointer-events: auto;
+      transition: all 0.2s ease;
+    }
+    
+    .tags-scroll-left:hover,
+    .tags-scroll-right:hover {
+      transform: translateY(-50%) scale(1.1);
+    }
+    
+    /* Ensure indicators are positioned correctly */
+    .tags-scroll-left {
+      left: 0.5rem; /* 8px from left edge */
+      width: 2rem; /* 32px - same as indicator width */
+    }
+    
+    .tags-scroll-right {
+      right: 0.5rem; /* 8px from right edge */
+      width: 2rem; /* 32px - same as indicator width */
+    }
+    
+    
+    /* Improved fade gradients for better content visibility */
+    .tags-fade-left {
+      background: linear-gradient(to right, 
+        rgba(255, 255, 255, 0.9) 0%, 
+        rgba(255, 255, 255, 0.7) 30%, 
+        rgba(255, 255, 255, 0.3) 60%, 
+        transparent 100%);
+    }
+    
+    .dark .tags-fade-left {
+      background: linear-gradient(to right, 
+        rgba(30, 41, 59, 0.9) 0%, 
+        rgba(30, 41, 59, 0.7) 30%, 
+        rgba(30, 41, 59, 0.3) 60%, 
+        transparent 100%);
+    }
+    
+    .tags-fade-right {
+      background: linear-gradient(to left, 
+        rgba(255, 255, 255, 0.9) 0%, 
+        rgba(255, 255, 255, 0.7) 30%, 
+        rgba(255, 255, 255, 0.3) 60%, 
+        transparent 100%);
+    }
+    
+    .dark .tags-fade-right {
+      background: linear-gradient(to left, 
+        rgba(30, 41, 59, 0.9) 0%, 
+        rgba(30, 41, 59, 0.7) 30%, 
+        rgba(30, 41, 59, 0.3) 60%, 
+        transparent 100%);
+    }
+
+    /* GitHub-style markdown alerts */
+    .markdown-alert {
+      @apply border-l-4 p-3 my-3 rounded-r-md;
+    }
+
+    .markdown-alert-title {
+      @apply font-semibold text-base mb-1 flex items-center;
+    }
+
+    .markdown-alert-title .fas {
+      @apply flex-shrink-0 mr-2;
+    }
+
+    .markdown-alert p:not(.markdown-alert-title) {
+      @apply mb-0;
+    }
+
+    /* Note alerts - Blue */
+    .markdown-alert-note {
+      @apply border-blue-500 bg-blue-50 dark:bg-blue-900/20;
+    }
+
+    .markdown-alert-note .markdown-alert-title {
+      @apply text-blue-500 dark:text-blue-400;
+    }
+
+    .markdown-alert-note .markdown-alert-title .fas {
+      @apply text-blue-500 dark:text-blue-400;
+    }
+
+    /* Tip alerts - Green */
+    .markdown-alert-tip {
+      @apply border-green-500 bg-green-50 dark:bg-green-900/20;
+    }
+
+    .markdown-alert-tip .markdown-alert-title {
+      @apply text-green-500 dark:text-green-400;
+    }
+
+    .markdown-alert-tip .markdown-alert-title .fas {
+      @apply text-green-500 dark:text-green-400;
+    }
+
+    /* Important alerts - Purple */
+    .markdown-alert-important {
+      @apply border-purple-500 bg-purple-50 dark:bg-purple-900/20;
+    }
+
+    .markdown-alert-important .markdown-alert-title {
+      @apply text-purple-500 dark:text-purple-400;
+    }
+
+    .markdown-alert-important .markdown-alert-title .fas {
+      @apply text-purple-500 dark:text-purple-400;
+    }
+
+    /* Warning alerts - Yellow */
+    .markdown-alert-warning {
+      @apply border-yellow-500 bg-yellow-50 dark:bg-yellow-900/20;
+    }
+
+    .markdown-alert-warning .markdown-alert-title {
+      @apply text-yellow-500 dark:text-yellow-400;
+    }
+
+    .markdown-alert-warning .markdown-alert-title .fas {
+      @apply text-yellow-500 dark:text-yellow-400;
+    }
+
+    /* Caution alerts - Red */
+    .markdown-alert-caution {
+      @apply border-red-500 bg-red-50 dark:bg-red-900/20;
+    }
+
+    .markdown-alert-caution .markdown-alert-title {
+      @apply text-red-500 dark:text-red-400;
+    }
+
+    .markdown-alert-caution .markdown-alert-title .fas {
+      @apply text-red-500 dark:text-red-400;
+    }
+
+    /* GFM Task Lists */
+    .prose-custom input[type="checkbox"] {
+      @apply mr-2 accent-blue-600;
+    }
+
+    .prose-custom li:has(input[type="checkbox"]) {
+      @apply list-none;
+    }
+
+    .prose-custom li:has(input[type="checkbox"])::before {
+      content: none;
+    }
+
+    /* GFM Tables */
+    .prose-custom table {
+      @apply w-full border-collapse border border-slate-300 dark:border-slate-600 my-4;
+    }
+
+    .prose-custom th,
+    .prose-custom td {
+      @apply border border-slate-300 dark:border-slate-600 px-3 py-2 text-left;
+    }
+
+    .prose-custom th {
+      @apply bg-slate-100 dark:bg-slate-800 font-semibold;
+    }
+
+    .prose-custom tbody tr:nth-child(even) {
+      @apply bg-slate-50 dark:bg-slate-900/50;
+    }
+
+    /* GFM Strikethrough */
+    .prose-custom del {
+      @apply line-through text-slate-500 dark:text-slate-400;
+    }
+
+    /* Highlight.js Line Numbers - Official Plugin Styling */
+    .hljs-ln-numbers {
+      -webkit-touch-callout: none;
+      -webkit-user-select: none;
+      -khtml-user-select: none;
+      -moz-user-select: none;
+      -ms-user-select: none;
+      user-select: none;
+
+      text-align: center;
+      color: #ccc;
+      border-right: 1px solid #CCC;
+      vertical-align: top;
+      padding-right: 5px;
+      
+      /* Custom styling for our theme */
+      @apply text-slate-400 dark:text-slate-500 border-slate-300 dark:border-slate-600;
+    }
+
+    .hljs-ln-code {
+      padding-left: 10px;
+    }
