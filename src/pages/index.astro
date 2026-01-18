@@ -1,0 +1,103 @@
+---
+import BaseHead from '../components/BaseHead.astro';
+import SEOHead from '../components/SEOHead.astro';
+import Footer from '../components/Footer.astro';
+import Header from '../components/Header.astro';
+import { SITE_DESCRIPTION, SITE_TITLE } from '../consts';
+---
+
+<!doctype html>
+<html lang="en" class="dark">
+	<head>
+		<BaseHead title={SITE_TITLE} description={SITE_DESCRIPTION} />
+		<SEOHead
+			title={SITE_TITLE}
+			description={SITE_DESCRIPTION}
+			schema={{
+				type: ['WebSite', 'Organization'],
+				breadcrumbs: [{ name: 'Home', url: '/' }],
+			}}
+		/>
+	</head>
+	<body class="min-h-screen bg-bg-01 text-white">
+		<Header />
+		
+		<!-- Hero Section -->
+		<section class="bg-circuit relative py-24 md:py-32 px-4">
+			<div class="max-w-4xl mx-auto text-center relative z-10">
+				<h1 class="text-5xl md:text-7xl font-bold mb-6 text-white">
+					{SITE_TITLE}
+				</h1>
+				<p class="text-xl md:text-2xl text-muted mb-8 max-w-2xl mx-auto">
+					{SITE_DESCRIPTION}
+				</p>
+				
+				<!-- Terminal Animation -->
+				<div class="mt-12 bg-card border border-slate-700 rounded-lg overflow-hidden shadow-2xl max-w-3xl mx-auto text-left">
+					<!-- Terminal Title Bar -->
+					<div class="bg-slate-800 px-4 py-2 flex items-center justify-between border-b border-slate-700">
+						<div class="flex items-center gap-2">
+							<span class="w-3 h-3 rounded-full bg-red-500"></span>
+							<span class="w-3 h-3 rounded-full bg-yellow-500"></span>
+							<span class="w-3 h-3 rounded-full bg-green-500"></span>
+						</div>
+						<span class="text-xs text-muted font-mono font-medium">terminal</span>
+					</div>
+					
+					<!-- Terminal Content -->
+					<div class="p-6 font-mono text-sm md:text-base leading-relaxed text-left">
+						<div class="text-accent font-medium">user@binary-brew:~$</div>
+						<div class="mt-2 text-slate-300">
+							<span class="text-accent font-medium">cat</span> latest-post.md
+						</div>
+						<div class="mt-4 text-muted italic">
+							# War stories and reflections...
+						</div>
+						<div class="mt-2 text-muted italic">
+							from debugging and DevOps to psychology, teams, and beyond.
+						</div>
+						<div class="mt-4">
+							<span class="text-accent font-medium">user@binary-brew:~$</span>
+							<span class="animate-pulse text-accent">_</span>
+						</div>
+					</div>
+				</div>
+			</div>
+		</section>
+
+		<!-- About Preview Section -->
+		<main class="max-w-4xl mx-auto px-4 py-16">
+			<section class="card bg-card border border-slate-700 rounded-lg p-8 md:p-12">
+				<h2 class="text-3xl md:text-4xl font-bold mb-6 text-white">
+					About Binary Brew
+				</h2>
+				<div class="prose-custom text-slate-300 space-y-4">
+					<p class="text-lg leading-relaxed">
+						Welcome to Binary Brew, where I share war stories and reflections from the trenches of software development. 
+						This is a space for exploring the intersection of code, systems, and the human side of technology.
+					</p>
+					<p class="text-lg leading-relaxed">
+						From debugging nightmares to DevOps adventures, from team dynamics to the psychology behind great software, 
+						I document the journey of building, breaking, and learning in the world of technology.
+					</p>
+					<p class="text-lg leading-relaxed text-muted">
+						Join me as I brew stories of software, systems, and the souls behind the code.
+					</p>
+				</div>
+				<div class="mt-8">
+					<a 
+						href="/about" 
+						class="inline-flex items-center px-6 py-3 bg-accent hover:bg-cyan-400 text-white font-semibold rounded-lg transition-colors duration-200"
+					>
+						Learn More
+						<svg class="ml-2 w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+						</svg>
+					</a>
+				</div>
+			</section>
+		</main>
+
+		<Footer />
+	</body>
+</html>

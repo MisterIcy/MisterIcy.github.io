@@ -1,49 +1,56 @@
-name: Pages
+name: Deploy to GitHub Pages
 
 on:
   push:
     branches:
-      - main # default branch
+      - main
+  workflow_dispatch: # Allow manual triggering from GitHub Actions UI
+
+# Set permissions at workflow level for better security and clarity
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Cancel in-progress runs when a new commit is pushed
+# This prevents wasted build minutes and race conditions
+concurrency:
+  group: "pages"
+  cancel-in-progress: true
 
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v5
 
-      - name: Use Node.js 20
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          # Examples: 20, 18.19, >=16.20.2, lts/Iron, lts/Hydrogen, *, latest, current, node
-          # Ref: https://github.com/actions/setup-node#supported-version-syntax
           node-version: "20"
-      - name: Cache NPM dependencies
-        uses: actions/cache@v4
-        with:
-          path: node_modules
-          key: ${{ runner.OS }}-npm-cache
-          restore-keys: |
-            ${{ runner.OS }}-npm-cache
-      - name: Install Dependencies
-        run: npm install
-      
-      - name: Build
+          # Use built-in npm cache for faster dependency installation
+          cache: "npm"
+
+      - name: Install dependencies
+        # Use npm ci for faster, reliable, reproducible builds
+        # Requires package-lock.json to be committed
+        run: npm ci
+
+      - name: Build Astro site
         run: npm run build
-      
+
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
         with:
           path: ./dist
-  
+
   deploy:
     needs: build
-    permissions:
-      pages: write
-      id-token: write
+    runs-on: ubuntu-latest
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
-    runs-on: ubuntu-latest
     steps:
       - name: Deploy to GitHub Pages
         id: deployment
