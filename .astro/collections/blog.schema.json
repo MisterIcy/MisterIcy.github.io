@@ -45,6 +45,61 @@
         "heroImage": {
           "type": "string"
         },
+        "author": {
+          "type": "object",
+          "properties": {
+            "name": {
+              "type": "string"
+            },
+            "bio": {
+              "type": "string"
+            },
+            "image": {
+              "type": "string"
+            },
+            "social": {
+              "type": "object",
+              "properties": {
+                "twitter": {
+                  "type": "string"
+                },
+                "linkedin": {
+                  "type": "string"
+                },
+                "github": {
+                  "type": "string"
+                },
+                "website": {
+                  "type": "string",
+                  "format": "uri"
+                }
+              },
+              "additionalProperties": false
+            }
+          },
+          "required": [
+            "name"
+          ],
+          "additionalProperties": false
+        },
+        "tags": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "category": {
+          "type": "string"
+        },
+        "excerpt": {
+          "type": "string"
+        },
+        "keywords": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
         "$schema": {
           "type": "string"
         }

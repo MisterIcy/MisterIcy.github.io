@@ -2,18 +2,67 @@
 import { Image } from 'astro:assets';
 import type { CollectionEntry } from 'astro:content';
 import BaseHead from '../components/BaseHead.astro';
+import SEOHead from '../components/SEOHead.astro';
 import Footer from '../components/Footer.astro';
 import FormattedDate from '../components/FormattedDate.astro';
 import Header from '../components/Header.astro';
+import { SITE_AUTHOR } from '../consts';
 
-type Props = CollectionEntry<'blog'>['data'];
+type Props = CollectionEntry<'blog'>['data'] & { post?: CollectionEntry<'blog'> };
 
-const { title, description, pubDate, updatedDate, heroImage } = Astro.props;
+const {
+	title,
+	description,
+	pubDate,
+	updatedDate,
+	heroImage,
+	author,
+	tags,
+	category,
+	post,
+} = Astro.props;
+
+const displayAuthor = author || {
+	name: SITE_AUTHOR.name,
+	bio: SITE_AUTHOR.bio,
+	social: SITE_AUTHOR.social,
+};
+
+const heroImageAlt = heroImage ? `${title} - Hero Image` : '';
 ---
 
 <html lang="en">
 	<head>
-		<BaseHead title={title} description={description} />
+		<BaseHead title={title} description={description} image={heroImage} imageAlt={heroImageAlt} />
+		{post && (
+			<SEOHead
+				title={title}
+				description={description}
+				image={heroImage}
+				imageAlt={heroImageAlt}
+				type="article"
+				article={{
+					publishedTime: pubDate,
+					modifiedTime: updatedDate || pubDate,
+					author: {
+						name: displayAuthor.name,
+						url: displayAuthor.social?.website,
+					},
+					section: category,
+					tags: tags,
+				}}
+				schema={{
+					type: 'BlogPosting',
+					post: post,
+					breadcrumbs: [
+						{ name: 'Home', url: '/' },
+						{ name: 'Blog', url: '/blog/' },
+						{ name: title, url: Astro.url.toString() },
+					],
+				}}
+				keywords={tags}
+			/>
+		)}
 		<style>
 			main {
 				width: calc(100% - 2em);
@@ -52,6 +101,43 @@ const { title, description, pubDate, updatedDate, heroImage } = Astro.props;
 			.last-updated-on {
 				font-style: italic;
 			}
+			.meta-info {
+				margin: 1.5em 0;
+				padding: 1em;
+				border-top: 1px solid rgb(var(--gray));
+				border-bottom: 1px solid rgb(var(--gray));
+			}
+			.author-info {
+				display: flex;
+				align-items: center;
+				gap: 1em;
+				margin-bottom: 1em;
+			}
+			.author-name {
+				font-weight: bold;
+			}
+			.tags {
+				display: flex;
+				flex-wrap: wrap;
+				gap: 0.5em;
+				margin-top: 1em;
+			}
+			.tag {
+				display: inline-block;
+				padding: 0.25em 0.75em;
+				background: rgb(var(--gray));
+				border-radius: 4px;
+				font-size: 0.875em;
+			}
+			.category {
+				display: inline-block;
+				padding: 0.25em 0.75em;
+				background: rgb(var(--accent));
+				color: white;
+				border-radius: 4px;
+				font-size: 0.875em;
+				margin-bottom: 0.5em;
+			}
 		</style>
 	</head>
 
@@ -60,22 +146,42 @@ const { title, description, pubDate, updatedDate, heroImage } = Astro.props;
 		<main>
 			<article>
 				<div class="hero-image">
-					{heroImage && <Image width={1020} height={510} src={heroImage} alt="" />}
+					{heroImage && <Image width={1020} height={510} src={heroImage} alt={heroImageAlt} />}
 				</div>
 				<div class="prose">
 					<div class="title">
 						<div class="date">
-							<FormattedDate date={pubDate} />
+							<time datetime={pubDate.toISOString()}>
+								<FormattedDate date={pubDate} />
+							</time>
 							{
 								updatedDate && (
 									<div class="last-updated-on">
-										Last updated on <FormattedDate date={updatedDate} />
+										Last updated on{' '}
+										<time datetime={updatedDate.toISOString()}>
+											<FormattedDate date={updatedDate} />
+										</time>
 									</div>
 								)
 							}
 						</div>
 						<h1>{title}</h1>
 						<hr />
+					</div>
+					<div class="meta-info">
+						{category && <span class="category">{category}</span>}
+						<div class="author-info">
+							<span class="author-name">By {displayAuthor.name}</span>
+						</div>
+						{tags && tags.length > 0 && (
+							<div class="tags">
+								{tags.map((tag) => (
+									<span class="tag" key={tag}>
+										{tag}
+									</span>
+								))}
+							</div>
+						)}
 					</div>
 					<slot />
 				</div>

@@ -13,6 +13,28 @@ const blog = defineCollection({
 			pubDate: z.coerce.date(),
 			updatedDate: z.coerce.date().optional(),
 			heroImage: image().optional(),
+			// Author information - can override default site author
+			author: z
+				.object({
+					name: z.string(),
+					bio: z.string().optional(),
+					image: image().optional(),
+					social: z
+						.object({
+							twitter: z.string().optional(),
+							linkedin: z.string().optional(),
+							github: z.string().optional(),
+							website: z.string().url().optional(),
+						})
+						.optional(),
+				})
+				.optional(),
+			// Content organization
+			tags: z.array(z.string()).optional(),
+			category: z.string().optional(),
+			// SEO enhancements
+			excerpt: z.string().optional(),
+			keywords: z.array(z.string()).optional(),
 		}),
 });
 
