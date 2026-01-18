@@ -3,7 +3,7 @@ title: 'Extreme Debugging in PHP: Building Custom Debug Binaries with Docker and
 description: 'Learn how to tackle the most elusive PHP bugs using custom-built debug binaries, Docker, GDB, and PHPUnit. A comprehensive deep dive into extreme debugging techniques for real-world PHP development scenarios.'
 pubDate: '2022-12-01'
 updatedDate: '2024-01-15'
-heroImage: '../../assets/blog-placeholder-3.jpg'
+heroImage: '../../assets/php-gdb.webp'
 category: 'Debugging'
 tags:
   - PHP
