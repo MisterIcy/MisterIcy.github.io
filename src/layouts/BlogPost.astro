@@ -327,28 +327,37 @@ const calculatedReadingTime = readingTime || 1;
 				<aside class="hidden lg:block space-y-6">
 					<!-- Table of Contents -->
 					{tocHeadings.length > 0 && (
-						<nav 
-							class="card bg-card border border-slate-700 rounded-lg p-6 sticky top-24 max-h-[calc(100vh-120px)] overflow-y-auto"
-							aria-label="Table of Contents"
-						>
-							<h2 class="text-lg font-bold mb-4 text-white">Table of Contents</h2>
-							<ul class="space-y-2 text-sm">
-								{tocHeadings.map((heading) => {
-									const slug = slugify(heading.text);
-									const indent = heading.depth === 3 ? 'ml-4' : '';
-									return (
-										<li class={indent}>
-											<a
-												href={`#${slug}`}
-												class="block py-1.5 px-2 text-slate-300 hover:text-accent hover:bg-slate-800 rounded transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 focus:ring-offset-bg-01"
-											>
-												{heading.text}
-											</a>
-										</li>
-									);
-								})}
-							</ul>
-						</nav>
+						<details class="card bg-card border border-slate-700 rounded-lg" open>
+							<summary class="p-6 cursor-pointer list-none focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 focus:ring-offset-bg-01 rounded-lg">
+								<div class="flex items-center justify-between">
+									<h2 class="text-lg font-bold text-white">Table of Contents</h2>
+									<svg class="w-5 h-5 text-muted transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+										<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+									</svg>
+								</div>
+							</summary>
+							<nav 
+								class="px-6 pb-6"
+								aria-label="Table of Contents"
+							>
+								<ul class="space-y-2 text-sm mt-2">
+									{tocHeadings.map((heading) => {
+										const slug = slugify(heading.text);
+										const indent = heading.depth === 3 ? 'ml-4' : '';
+										return (
+											<li class={indent}>
+												<a
+													href={`#${slug}`}
+													class="block py-1.5 px-2 text-slate-300 hover:text-accent hover:bg-slate-800 rounded transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 focus:ring-offset-bg-01"
+												>
+													{heading.text}
+												</a>
+											</li>
+										);
+									})}
+								</ul>
+							</nav>
+						</details>
 					)}
 
 					<!-- Author Bio Card -->
@@ -594,22 +603,17 @@ const calculatedReadingTime = readingTime || 1;
 				}
 			}
 
-			/* TOC scrollbar styling */
-			aside nav::-webkit-scrollbar {
-				width: 6px;
+			/* Details summary styling for collapsible TOC */
+			details summary {
+				user-select: none;
 			}
 
-			aside nav::-webkit-scrollbar-track {
-				background: transparent;
+			details summary::-webkit-details-marker {
+				display: none;
 			}
 
-			aside nav::-webkit-scrollbar-thumb {
-				background: rgba(100, 116, 139, 0.3);
-				border-radius: 3px;
-			}
-
-			aside nav::-webkit-scrollbar-thumb:hover {
-				background: rgba(100, 116, 139, 0.5);
+			details[open] summary svg {
+				transform: rotate(180deg);
 			}
 		</style>
 	</body>
