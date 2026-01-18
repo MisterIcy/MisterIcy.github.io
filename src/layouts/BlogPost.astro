@@ -1,14 +1,19 @@
 ---
 import { Image } from 'astro:assets';
 import type { CollectionEntry } from 'astro:content';
+import type { MarkdownHeading } from 'astro';
 import BaseHead from '../components/BaseHead.astro';
 import SEOHead from '../components/SEOHead.astro';
 import Footer from '../components/Footer.astro';
 import FormattedDate from '../components/FormattedDate.astro';
 import Header from '../components/Header.astro';
-import { SITE_AUTHOR } from '../consts';
+import { SITE_AUTHOR, SITE_URL } from '../consts';
 
-type Props = CollectionEntry<'blog'>['data'] & { post?: CollectionEntry<'blog'> };
+type Props = CollectionEntry<'blog'>['data'] & { 
+	post?: CollectionEntry<'blog'>;
+	headings?: MarkdownHeading[];
+	readingTime?: number;
+};
 
 const {
 	title,
@@ -20,6 +25,8 @@ const {
 	tags,
 	category,
 	post,
+	headings = [],
+	readingTime = 1,
 } = Astro.props;
 
 const displayAuthor = author || {
@@ -29,9 +36,26 @@ const displayAuthor = author || {
 };
 
 const heroImageAlt = heroImage ? `${title} - Hero Image` : '';
+
+// Filter headings for TOC (h2 and h3)
+const tocHeadings = headings.filter(h => h.depth >= 2 && h.depth <= 3);
+
+// Generate slug from heading text
+function slugify(text: string): string {
+	return text
+		.toLowerCase()
+		.replace(/[^\w\s-]/g, '')
+		.replace(/\s+/g, '-')
+		.replace(/-+/g, '-')
+		.trim();
+}
+
+// Calculate reading time from content if not provided
+// This is a fallback - ideally calculated from raw markdown
+const calculatedReadingTime = readingTime || 1;
 ---
 
-<html lang="en">
+<html lang="en" class="dark">
 	<head>
 		<BaseHead title={title} description={description} image={heroImage} imageAlt={heroImageAlt} />
 		{post && (
@@ -63,130 +87,530 @@ const heroImageAlt = heroImage ? `${title} - Hero Image` : '';
 				keywords={tags}
 			/>
 		)}
-		<style>
-			main {
-				width: calc(100% - 2em);
-				max-width: 100%;
-				margin: 0;
-			}
-			.hero-image {
-				width: 100%;
-			}
-			.hero-image img {
-				display: block;
-				margin: 0 auto;
-				border-radius: 12px;
-				box-shadow: var(--box-shadow);
-			}
-			.prose {
-				width: 720px;
-				max-width: calc(100% - 2em);
-				margin: auto;
-				padding: 1em;
-				color: rgb(var(--gray-dark));
-			}
-			.title {
-				margin-bottom: 1em;
-				padding: 1em 0;
-				text-align: center;
-				line-height: 1;
-			}
-			.title h1 {
-				margin: 0 0 0.5em 0;
-			}
-			.date {
-				margin-bottom: 0.5em;
-				color: rgb(var(--gray));
-			}
-			.last-updated-on {
-				font-style: italic;
-			}
-			.meta-info {
-				margin: 1.5em 0;
-				padding: 1em;
-				border-top: 1px solid rgb(var(--gray));
-				border-bottom: 1px solid rgb(var(--gray));
-			}
-			.author-info {
-				display: flex;
-				align-items: center;
-				gap: 1em;
-				margin-bottom: 1em;
-			}
-			.author-name {
-				font-weight: bold;
-			}
-			.tags {
-				display: flex;
-				flex-wrap: wrap;
-				gap: 0.5em;
-				margin-top: 1em;
-			}
-			.tag {
-				display: inline-block;
-				padding: 0.25em 0.75em;
-				background: rgb(var(--gray));
-				border-radius: 4px;
-				font-size: 0.875em;
-			}
-			.category {
-				display: inline-block;
-				padding: 0.25em 0.75em;
-				background: rgb(var(--accent));
-				color: white;
-				border-radius: 4px;
-				font-size: 0.875em;
-				margin-bottom: 0.5em;
-			}
-		</style>
 	</head>
 
-	<body>
+	<body class="min-h-screen bg-bg-01 text-white">
+		<!-- Skip to main content link for keyboard navigation -->
+		<a 
+			href="#main-content" 
+			class="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-50 focus:px-4 focus:py-2 focus:bg-accent focus:text-white focus:rounded-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-accent"
+		>
+			Skip to main content
+		</a>
+
 		<Header />
-		<main>
-			<article>
-				<div class="hero-image">
-					{heroImage && <Image width={1020} height={510} src={heroImage} alt={heroImageAlt} />}
-				</div>
-				<div class="prose">
-					<div class="title">
-						<div class="date">
-							<time datetime={pubDate.toISOString()}>
-								<FormattedDate date={pubDate} />
-							</time>
-							{
-								updatedDate && (
-									<div class="last-updated-on">
-										Last updated on{' '}
-										<time datetime={updatedDate.toISOString()}>
-											<FormattedDate date={updatedDate} />
-										</time>
-									</div>
-								)
-							}
+		
+		<!-- Hero Section with Circuit Background -->
+		<section class="bg-circuit relative py-12 md:py-20 px-4">
+			<div class="max-w-7xl mx-auto relative z-10">
+				{heroImage && (
+					<div class="mb-8 max-w-4xl mx-auto">
+						<div class="rounded-lg overflow-hidden shadow-2xl border border-slate-700/50">
+							<Image
+								width={1200}
+								height={630}
+								src={heroImage}
+								alt={heroImageAlt}
+								class="w-full h-auto object-cover"
+								loading="eager"
+							/>
 						</div>
-						<h1>{title}</h1>
-						<hr />
 					</div>
-					<div class="meta-info">
-						{category && <span class="category">{category}</span>}
-						<div class="author-info">
-							<span class="author-name">By {displayAuthor.name}</span>
-						</div>
-						{tags && tags.length > 0 && (
-							<div class="tags">
-								{tags.map((tag) => (
-									<span class="tag" key={tag}>
-										{tag}
-									</span>
-								))}
-							</div>
+				)}
+				
+				<div class="max-w-4xl mx-auto text-center">
+					{category && (
+						<span class="inline-block px-4 py-1.5 mb-4 text-sm font-semibold rounded-full bg-accent/20 text-accent border border-accent/30">
+							{category}
+						</span>
+					)}
+					
+					<h1 class="text-3xl md:text-4xl lg:text-5xl font-bold mb-6 text-white leading-tight">
+						{title}
+					</h1>
+					
+					{description && (
+						<p class="text-lg md:text-xl text-muted mb-6 max-w-2xl mx-auto">
+							{description}
+						</p>
+					)}
+					
+					<div class="flex flex-wrap items-center justify-center gap-4 md:gap-6 text-sm md:text-base text-muted">
+						<time 
+							datetime={pubDate.toISOString()}
+							class="flex items-center gap-2"
+						>
+							<svg class="w-4 h-4 md:w-5 md:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+							</svg>
+							<FormattedDate date={pubDate} />
+						</time>
+						
+						<span class="flex items-center gap-2" aria-label={`Reading time: ${calculatedReadingTime} minutes`}>
+							<svg class="w-4 h-4 md:w-5 md:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+							</svg>
+							<span class="reading-time-text">{calculatedReadingTime} min read</span>
+						</span>
+						
+						{updatedDate && updatedDate.getTime() !== pubDate.getTime() && (
+							<span class="flex items-center gap-2 text-xs md:text-sm">
+								<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+								</svg>
+								Updated <time datetime={updatedDate.toISOString()}>
+									<FormattedDate date={updatedDate} />
+								</time>
+							</span>
 						)}
 					</div>
-					<slot />
+					
+					{tags && tags.length > 0 && (
+						<div class="flex flex-wrap items-center justify-center gap-2 mt-6">
+							{tags.map((tag) => (
+								<a
+									href={`/blog?tag=${encodeURIComponent(tag)}`}
+									class="inline-block px-3 py-1 text-xs md:text-sm rounded-full bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-600 hover:border-accent transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 focus:ring-offset-bg-01"
+									aria-label={`View posts tagged ${tag}`}
+								>
+									#{tag}
+								</a>
+							))}
+						</div>
+					)}
 				</div>
-			</article>
+			</div>
+		</section>
+
+		<!-- Main Content Area -->
+		<main id="main-content" class="max-w-7xl mx-auto px-4 py-8 md:py-12">
+			<div class="grid grid-cols-1 lg:grid-cols-[1fr_300px] gap-8 lg:gap-12">
+				<!-- Main Article Content -->
+				<article class="min-w-0">
+					<!-- Breadcrumbs -->
+					<nav aria-label="Breadcrumb" class="mb-8">
+						<ol class="flex items-center gap-2 text-sm text-muted">
+							<li><a href="/" class="hover:text-accent focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 focus:ring-offset-bg-01 rounded">Home</a></li>
+							<li aria-hidden="true">/</li>
+							<li><a href="/blog/" class="hover:text-accent focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 focus:ring-offset-bg-01 rounded">Blog</a></li>
+							<li aria-hidden="true">/</li>
+							<li class="text-white" aria-current="page">{title}</li>
+						</ol>
+					</nav>
+
+					<!-- Article Content -->
+					<div class="prose-custom prose-lg max-w-none">
+						<slot />
+					</div>
+
+					<!-- Author Card (Mobile - below content) -->
+					<div class="lg:hidden mt-12">
+						<div class="card bg-card border border-slate-700 rounded-lg p-6">
+							<div class="flex items-start gap-4">
+								<div class="flex-shrink-0">
+									<div class="w-16 h-16 rounded-full bg-slate-700 flex items-center justify-center overflow-hidden border-2 border-accent/30">
+										<svg class="w-8 h-8 text-muted" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
+											<path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd" />
+										</svg>
+									</div>
+								</div>
+								<div class="flex-1">
+									<h3 class="text-lg font-bold mb-1 text-white">About {displayAuthor.name}</h3>
+									{displayAuthor.bio && (
+										<p class="text-sm text-slate-300 mb-3">{displayAuthor.bio}</p>
+									)}
+									<div class="flex items-center gap-3">
+										{displayAuthor.social?.github && (
+											<a 
+												href={`https://github.com/${displayAuthor.social.github}`}
+												target="_blank"
+												rel="noopener noreferrer"
+												class="w-10 h-10 flex items-center justify-center rounded-lg bg-slate-800 hover:bg-slate-700 text-muted hover:text-accent transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 focus:ring-offset-bg-01"
+												aria-label={`View ${displayAuthor.name} on GitHub`}
+											>
+												<svg viewBox="0 0 16 16" width="20" height="20" class="fill-current" aria-hidden="true">
+													<path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.012 8.012 0 0 0 16 8c0-4.42-3.58-8-8-8z" />
+												</svg>
+											</a>
+										)}
+										{displayAuthor.social?.linkedin && (
+											<a 
+												href={displayAuthor.social.linkedin}
+												target="_blank"
+												rel="noopener noreferrer"
+												class="w-10 h-10 flex items-center justify-center rounded-lg bg-slate-800 hover:bg-slate-700 text-muted hover:text-accent transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 focus:ring-offset-bg-01"
+												aria-label={`View ${displayAuthor.name} on LinkedIn`}
+											>
+												<svg viewBox="0 0 16 16" width="20" height="20" class="fill-current" aria-hidden="true">
+													<path d="M0 1.146C0 .513.526 0 1.175 0h13.65C15.474 0 16 .513 16 1.146v13.708c0 .633-.526 1.146-1.175 1.146H1.175C.526 16 0 15.487 0 14.854V1.146zm4.943 12.248V6.169H2.542v7.225h2.401zm-1.2-8.212c.837 0 1.358-.554 1.358-1.248-.015-.709-.52-1.248-1.342-1.248-.822 0-1.359.54-1.359 1.248 0 .694.521 1.248 1.327 1.248h.016zm4.908 8.212V9.359c0-.216.016-.432.08-.586.173-.431.568-.878 1.232-.878.869 0 1.216.662 1.216 1.634v3.865h2.401V9.25c0-2.22-1.184-3.252-2.764-3.252-1.274 0-1.845.7-2.165 1.193v.025h-.016a5.54 5.54 0 0 1 .016-.025V6.169h-2.4c.03.678 0 7.225 0 7.225h2.4z" />
+												</svg>
+											</a>
+										)}
+									</div>
+								</div>
+							</div>
+						</div>
+					</div>
+
+					<!-- Social Sharing (Mobile - below content) -->
+					<div class="lg:hidden mt-8">
+						<div class="card bg-card border border-slate-700 rounded-lg p-6">
+							<h3 class="text-lg font-bold mb-4 text-white">Share this post</h3>
+							<div class="flex items-center gap-3">
+								<a
+									href={`https://twitter.com/intent/tweet?text=${encodeURIComponent(title)}&url=${encodeURIComponent(Astro.url.toString())}`}
+									target="_blank"
+									rel="noopener noreferrer"
+									class="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-slate-800 hover:bg-slate-700 text-white rounded-lg transition-colors duration-200 border border-slate-600 focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 focus:ring-offset-bg-01"
+									aria-label="Share on Twitter"
+								>
+									<svg viewBox="0 0 16 16" width="20" height="20" class="fill-current" aria-hidden="true">
+										<path d="M5.026 15c6.038 0 9.341-5.003 9.341-9.334 0-.14 0-.282-.006-.422A6.685 6.685 0 0 0 16 3.542a6.658 6.658 0 0 1-1.889.518 3.301 3.301 0 0 0 1.447-1.817 6.533 6.533 0 0 1-2.087.793A3.286 3.286 0 0 0 7.875 6.03a9.325 9.325 0 0 1-6.767-3.429 3.289 3.289 0 0 0 1.018 4.382A3.323 3.323 0 0 1 .64 6.575v.045a3.288 3.288 0 0 0 2.632 3.218 3.203 3.203 0 0 1-.865.115 3.23 3.23 0 0 1-.614-.057 3.283 3.283 0 0 0 3.067 2.277A6.588 6.588 0 0 1 .78 13.58a6.32 6.32 0 0 1-.78-.045A9.344 9.344 0 0 0 5.026 15z" />
+									</svg>
+									<span>Twitter</span>
+								</a>
+								<a
+									href={`https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(Astro.url.toString())}`}
+									target="_blank"
+									rel="noopener noreferrer"
+									class="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-slate-800 hover:bg-slate-700 text-white rounded-lg transition-colors duration-200 border border-slate-600 focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 focus:ring-offset-bg-01"
+									aria-label="Share on LinkedIn"
+								>
+									<svg viewBox="0 0 16 16" width="20" height="20" class="fill-current" aria-hidden="true">
+										<path d="M0 1.146C0 .513.526 0 1.175 0h13.65C15.474 0 16 .513 16 1.146v13.708c0 .633-.526 1.146-1.175 1.146H1.175C.526 16 0 15.487 0 14.854V1.146zm4.943 12.248V6.169H2.542v7.225h2.401zm-1.2-8.212c.837 0 1.358-.554 1.358-1.248-.015-.709-.52-1.248-1.342-1.248-.822 0-1.359.54-1.359 1.248 0 .694.521 1.248 1.327 1.248h.016zm4.908 8.212V9.359c0-.216.016-.432.08-.586.173-.431.568-.878 1.232-.878.869 0 1.216.662 1.216 1.634v3.865h2.401V9.25c0-2.22-1.184-3.252-2.764-3.252-1.274 0-1.845.7-2.165 1.193v.025h-.016a5.54 5.54 0 0 1 .016-.025V6.169h-2.4c.03.678 0 7.225 0 7.225h2.4z" />
+									</svg>
+									<span>LinkedIn</span>
+								</a>
+							</div>
+						</div>
+					</div>
+				</article>
+
+				<!-- Table of Contents (Mobile - Collapsible) -->
+				{tocHeadings.length > 0 && (
+					<div class="lg:hidden mb-8">
+						<details class="card bg-card border border-slate-700 rounded-lg">
+							<summary class="p-4 cursor-pointer list-none focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 focus:ring-offset-bg-01 rounded-lg">
+								<div class="flex items-center justify-between">
+									<h2 class="text-lg font-bold text-white">Table of Contents</h2>
+									<svg class="w-5 h-5 text-muted transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+										<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+									</svg>
+								</div>
+							</summary>
+							<nav 
+								class="px-4 pb-4"
+								aria-label="Table of Contents"
+							>
+								<ul class="space-y-2 text-sm mt-2">
+									{tocHeadings.map((heading) => {
+										const slug = slugify(heading.text);
+										const indent = heading.depth === 3 ? 'ml-4' : '';
+										return (
+											<li class={indent}>
+												<a
+													href={`#${slug}`}
+													class="flex items-center py-2 px-3 text-slate-300 hover:text-accent hover:bg-slate-800 rounded transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 focus:ring-offset-bg-01 min-h-[44px]"
+												>
+													{heading.text}
+												</a>
+											</li>
+										);
+									})}
+								</ul>
+							</nav>
+						</details>
+					</div>
+				)}
+
+				<!-- Sidebar (Desktop) -->
+				<aside class="hidden lg:block space-y-6">
+					<!-- Table of Contents -->
+					{tocHeadings.length > 0 && (
+						<nav 
+							class="card bg-card border border-slate-700 rounded-lg p-6 sticky top-24 max-h-[calc(100vh-120px)] overflow-y-auto"
+							aria-label="Table of Contents"
+						>
+							<h2 class="text-lg font-bold mb-4 text-white">Table of Contents</h2>
+							<ul class="space-y-2 text-sm">
+								{tocHeadings.map((heading) => {
+									const slug = slugify(heading.text);
+									const indent = heading.depth === 3 ? 'ml-4' : '';
+									return (
+										<li class={indent}>
+											<a
+												href={`#${slug}`}
+												class="block py-1.5 px-2 text-slate-300 hover:text-accent hover:bg-slate-800 rounded transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 focus:ring-offset-bg-01"
+											>
+												{heading.text}
+											</a>
+										</li>
+									);
+								})}
+							</ul>
+						</nav>
+					)}
+
+					<!-- Author Bio Card -->
+					<div class="card bg-card border border-slate-700 rounded-lg p-6">
+						<div class="flex items-start gap-4">
+							<div class="flex-shrink-0">
+								<div class="w-16 h-16 rounded-full bg-slate-700 flex items-center justify-center overflow-hidden border-2 border-accent/30">
+									<svg class="w-8 h-8 text-muted" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
+										<path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd" />
+									</svg>
+								</div>
+							</div>
+							<div class="flex-1 min-w-0">
+								<h3 class="text-lg font-bold mb-1 text-white">About {displayAuthor.name}</h3>
+								{displayAuthor.bio && (
+									<p class="text-sm text-slate-300 mb-3">{displayAuthor.bio}</p>
+								)}
+								<div class="flex items-center gap-3">
+									{displayAuthor.social?.github && (
+										<a 
+											href={`https://github.com/${displayAuthor.social.github}`}
+											target="_blank"
+											rel="noopener noreferrer"
+											class="w-10 h-10 flex items-center justify-center rounded-lg bg-slate-800 hover:bg-slate-700 text-muted hover:text-accent transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 focus:ring-offset-bg-01"
+											aria-label={`View ${displayAuthor.name} on GitHub`}
+										>
+											<svg viewBox="0 0 16 16" width="20" height="20" class="fill-current" aria-hidden="true">
+												<path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.012 8.012 0 0 0 16 8c0-4.42-3.58-8-8-8z" />
+											</svg>
+										</a>
+									)}
+									{displayAuthor.social?.linkedin && (
+										<a 
+											href={displayAuthor.social.linkedin}
+											target="_blank"
+											rel="noopener noreferrer"
+											class="w-10 h-10 flex items-center justify-center rounded-lg bg-slate-800 hover:bg-slate-700 text-muted hover:text-accent transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 focus:ring-offset-bg-01"
+											aria-label={`View ${displayAuthor.name} on LinkedIn`}
+										>
+											<svg viewBox="0 0 16 16" width="20" height="20" class="fill-current" aria-hidden="true">
+												<path d="M0 1.146C0 .513.526 0 1.175 0h13.65C15.474 0 16 .513 16 1.146v13.708c0 .633-.526 1.146-1.175 1.146H1.175C.526 16 0 15.487 0 14.854V1.146zm4.943 12.248V6.169H2.542v7.225h2.401zm-1.2-8.212c.837 0 1.358-.554 1.358-1.248-.015-.709-.52-1.248-1.342-1.248-.822 0-1.359.54-1.359 1.248 0 .694.521 1.248 1.327 1.248h.016zm4.908 8.212V9.359c0-.216.016-.432.08-.586.173-.431.568-.878 1.232-.878.869 0 1.216.662 1.216 1.634v3.865h2.401V9.25c0-2.22-1.184-3.252-2.764-3.252-1.274 0-1.845.7-2.165 1.193v.025h-.016a5.54 5.54 0 0 1 .016-.025V6.169h-2.4c.03.678 0 7.225 0 7.225h2.4z" />
+											</svg>
+										</a>
+									)}
+								</div>
+							</div>
+						</div>
+					</div>
+
+					<!-- Social Sharing -->
+					<div class="card bg-card border border-slate-700 rounded-lg p-6">
+						<h3 class="text-lg font-bold mb-4 text-white">Share this post</h3>
+						<div class="space-y-3">
+							<a
+								href={`https://twitter.com/intent/tweet?text=${encodeURIComponent(title)}&url=${encodeURIComponent(Astro.url.toString())}`}
+								target="_blank"
+								rel="noopener noreferrer"
+								class="flex items-center justify-center gap-2 w-full px-4 py-3 bg-slate-800 hover:bg-slate-700 text-white rounded-lg transition-colors duration-200 border border-slate-600 focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 focus:ring-offset-bg-01"
+								aria-label="Share on Twitter"
+							>
+								<svg viewBox="0 0 16 16" width="20" height="20" class="fill-current" aria-hidden="true">
+									<path d="M5.026 15c6.038 0 9.341-5.003 9.341-9.334 0-.14 0-.282-.006-.422A6.685 6.685 0 0 0 16 3.542a6.658 6.658 0 0 1-1.889.518 3.301 3.301 0 0 0 1.447-1.817 6.533 6.533 0 0 1-2.087.793A3.286 3.286 0 0 0 7.875 6.03a9.325 9.325 0 0 1-6.767-3.429 3.289 3.289 0 0 0 1.018 4.382A3.323 3.323 0 0 1 .64 6.575v.045a3.288 3.288 0 0 0 2.632 3.218 3.203 3.203 0 0 1-.865.115 3.23 3.23 0 0 1-.614-.057 3.283 3.283 0 0 0 3.067 2.277A6.588 6.588 0 0 1 .78 13.58a6.32 6.32 0 0 1-.78-.045A9.344 9.344 0 0 0 5.026 15z" />
+								</svg>
+								<span>Share on Twitter</span>
+							</a>
+							<a
+								href={`https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(Astro.url.toString())}`}
+								target="_blank"
+								rel="noopener noreferrer"
+								class="flex items-center justify-center gap-2 w-full px-4 py-3 bg-slate-800 hover:bg-slate-700 text-white rounded-lg transition-colors duration-200 border border-slate-600 focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 focus:ring-offset-bg-01"
+								aria-label="Share on LinkedIn"
+							>
+								<svg viewBox="0 0 16 16" width="20" height="20" class="fill-current" aria-hidden="true">
+									<path d="M0 1.146C0 .513.526 0 1.175 0h13.65C15.474 0 16 .513 16 1.146v13.708c0 .633-.526 1.146-1.175 1.146H1.175C.526 16 0 15.487 0 14.854V1.146zm4.943 12.248V6.169H2.542v7.225h2.401zm-1.2-8.212c.837 0 1.358-.554 1.358-1.248-.015-.709-.52-1.248-1.342-1.248-.822 0-1.359.54-1.359 1.248 0 .694.521 1.248 1.327 1.248h.016zm4.908 8.212V9.359c0-.216.016-.432.08-.586.173-.431.568-.878 1.232-.878.869 0 1.216.662 1.216 1.634v3.865h2.401V9.25c0-2.22-1.184-3.252-2.764-3.252-1.274 0-1.845.7-2.165 1.193v.025h-.016a5.54 5.54 0 0 1 .016-.025V6.169h-2.4c.03.678 0 7.225 0 7.225h2.4z" />
+								</svg>
+								<span>Share on LinkedIn</span>
+							</a>
+						</div>
+					</div>
+				</aside>
+			</div>
 		</main>
+
 		<Footer />
+
+		<!-- Client-side script for TOC smooth scroll, heading IDs, and reading time -->
+		<script>
+			document.addEventListener('DOMContentLoaded', () => {
+				// Calculate actual reading time from article content
+				const articleContent = document.querySelector('article .prose-custom');
+				if (articleContent) {
+					const text = articleContent.textContent || '';
+					const wordCount = text.split(/\s+/).filter(word => word.length > 0).length;
+					const readingTime = Math.max(1, Math.ceil(wordCount / 200)); // 200 words per minute
+					
+				// Update reading time display
+				const readingTimeElement = document.querySelector('[aria-label*="Reading time"]');
+				if (readingTimeElement) {
+					readingTimeElement.setAttribute('aria-label', `Reading time: ${readingTime} minutes`);
+					const timeText = readingTimeElement.querySelector('.reading-time-text');
+					if (timeText) {
+						timeText.textContent = `${readingTime} min read`;
+					}
+				}
+				}
+
+				// Add IDs to headings for TOC navigation
+				const headings = document.querySelectorAll('article h2, article h3');
+				headings.forEach((heading) => {
+					const text = heading.textContent || '';
+					const slug = text
+						.toLowerCase()
+						.replace(/[^\w\s-]/g, '')
+						.replace(/\s+/g, '-')
+						.replace(/-+/g, '-')
+						.trim();
+					if (!heading.id) {
+						heading.id = slug;
+					}
+				});
+
+				// Smooth scroll for TOC links
+				const tocLinks = document.querySelectorAll('aside a[href^="#"], nav a[href^="#"]');
+				tocLinks.forEach((link) => {
+					link.addEventListener('click', (e) => {
+						const href = link.getAttribute('href');
+						if (href && href.startsWith('#')) {
+							const target = document.querySelector(href);
+							if (target) {
+								e.preventDefault();
+								const headerOffset = 80;
+								const elementPosition = target.getBoundingClientRect().top;
+								const offsetPosition = elementPosition + window.pageYOffset - headerOffset;
+
+								window.scrollTo({
+									top: offsetPosition,
+									behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches 
+										? 'auto' 
+										: 'smooth'
+								});
+
+								// Update URL without jumping
+								history.pushState(null, '', href);
+
+								// Focus the target heading for accessibility
+								target.setAttribute('tabindex', '-1');
+								if (target instanceof HTMLElement) {
+									target.focus();
+								}
+								target.removeAttribute('tabindex');
+							}
+						}
+					});
+				});
+			});
+		</script>
+
+		<style>
+			/* Screen reader only class */
+			.sr-only {
+				position: absolute;
+				width: 1px;
+				height: 1px;
+				padding: 0;
+				margin: -1px;
+				overflow: hidden;
+				clip: rect(0, 0, 0, 0);
+				white-space: nowrap;
+				border-width: 0;
+			}
+
+			.focus\:not-sr-only:focus {
+				position: static;
+				width: auto;
+				height: auto;
+				padding: inherit;
+				margin: inherit;
+				overflow: visible;
+				clip: auto;
+				white-space: normal;
+			}
+
+			/* Ensure proper focus styles for all interactive elements - WCAG 2.2 2.4.11 */
+			*:focus-visible {
+				outline: 2px solid #06b6d4;
+				outline-offset: 2px;
+				border-radius: 4px;
+			}
+
+			/* Ensure focus is not obscured by sticky elements */
+			:target {
+				scroll-margin-top: 100px;
+			}
+
+			/* High contrast focus for better visibility */
+			@media (prefers-contrast: high) {
+				*:focus-visible {
+					outline: 3px solid #06b6d4;
+					outline-offset: 3px;
+				}
+			}
+
+			/* Touch target minimum sizes - WCAG 2.2 2.5.8 */
+			a, button, [role="button"] {
+				min-height: 24px;
+				min-width: 24px;
+			}
+
+			/* Mobile touch targets - larger for better usability */
+			@media (max-width: 640px) {
+				a, button, [role="button"] {
+					min-height: 44px;
+					min-width: 44px;
+				}
+			}
+
+			/* Ensure interactive elements have adequate spacing */
+			a + a, button + button {
+				margin-left: 8px;
+			}
+
+			/* Details summary styling for mobile TOC */
+			details summary {
+				user-select: none;
+			}
+
+			details summary::-webkit-details-marker {
+				display: none;
+			}
+
+			details[open] summary svg {
+				transform: rotate(180deg);
+			}
+
+			/* Smooth scroll with reduced motion support */
+			html {
+				scroll-behavior: smooth;
+			}
+
+			@media (prefers-reduced-motion: reduce) {
+				html {
+					scroll-behavior: auto;
+				}
+			}
+
+			/* TOC scrollbar styling */
+			aside nav::-webkit-scrollbar {
+				width: 6px;
+			}
+
+			aside nav::-webkit-scrollbar-track {
+				background: transparent;
+			}
+
+			aside nav::-webkit-scrollbar-thumb {
+				background: rgba(100, 116, 139, 0.3);
+				border-radius: 3px;
+			}
+
+			aside nav::-webkit-scrollbar-thumb:hover {
+				background: rgba(100, 116, 139, 0.5);
+			}
+		</style>
 	</body>
 </html>
