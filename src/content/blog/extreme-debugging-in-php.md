@@ -1,10 +1,12 @@
 ---
 title: 'Extreme PHP Debugging: GDB & Docker Guide'
-description: 'Learn how to debug PHP crashes using custom debug binaries, Docker, and GDB. Master extreme PHP debugging techniques when standard tools fail.'
+description: >-
+  Learn how to debug PHP crashes using custom debug binaries, Docker, and GDB.
+  Master extreme PHP debugging techniques when standard tools fail.
 pubDate: '2022-12-01'
 updatedDate: '2026-01-18'
-heroImage: '../../assets/php-gdb.webp'
-category: 'Debugging'
+heroImage: ../../assets/extreme-debugging-in-php-cover.webp
+category: Debugging
 tags:
   - PHP
   - Debugging
@@ -16,8 +18,11 @@ tags:
   - Troubleshooting
   - PHP Development
   - Advanced Debugging
-excerpt: |
-  When PHPUnit crashes with exit code 143 and coverage generation fails silently, standard debugging tools won\'t help. Learn how to build custom PHP debug binaries, use GDB to trace crashes, and debug deep PHP internals using Docker, custom builds, and advanced debugging techniques.
+excerpt: >
+  When PHPUnit crashes with exit code 143 and coverage generation fails
+  silently, standard debugging tools won\'t help. Learn how to build custom PHP
+  debug binaries, use GDB to trace crashes, and debug deep PHP internals using
+  Docker, custom builds, and advanced debugging techniques.
 keywords:
   - PHP debugging
   - GDB PHP

@@ -1,10 +1,11 @@
 import OpenAI from "openai";
 import { readFile, writeFile, mkdir } from "fs/promises";
 import { existsSync } from "fs";
-import { resolve, basename, extname } from "path";
+import { resolve, basename, extname, relative } from "path";
 import yargs from "yargs";
 import { hideBin } from "yargs/helpers";
 import dotenv from "dotenv";
+import matter from "gray-matter";
 
 // Load environment variables from .env file
 dotenv.config();
@@ -101,7 +102,51 @@ Style: painterly editorial illustration, soft lighting, handcrafted feel.`;
 }
 
 /**
- * Generate cover image using DALL-E and save it
+ * Update blog post frontmatter with heroImage property
+ */
+async function updatePostFrontmatter(
+    postPath: string,
+    imagePath: string
+): Promise<void> {
+    console.log("📝 Updating blog post frontmatter...");
+    
+    // Read the blog post
+    const fileContent = await readFile(postPath, "utf-8");
+    
+    // Parse frontmatter
+    const parsed = matter(fileContent);
+    
+    // Calculate relative path from blog post to image
+    // Blog posts are in src/content/blog/
+    // Images are in src/assets/
+    // Relative path should be ../../assets/filename.webp
+    const imageFilename = basename(imagePath);
+    const heroImagePath = `../../assets/${imageFilename}`;
+    
+    // Check if heroImage already exists
+    const hadHeroImage = !!parsed.data.heroImage;
+    const oldHeroImage = parsed.data.heroImage;
+    
+    // Update frontmatter with heroImage
+    parsed.data.heroImage = heroImagePath;
+    
+    // Stringify back to markdown with updated frontmatter
+    const updatedContent = matter.stringify(parsed.content, parsed.data);
+    
+    // Write back to file
+    await writeFile(postPath, updatedContent, "utf-8");
+    
+    if (hadHeroImage && oldHeroImage !== heroImagePath) {
+        console.log(`✅ Updated heroImage: ${oldHeroImage} → ${heroImagePath}`);
+    } else if (hadHeroImage) {
+        console.log(`ℹ️  heroImage already set to: ${heroImagePath}`);
+    } else {
+        console.log(`✅ Added heroImage: ${heroImagePath}`);
+    }
+}
+
+/**
+ * Generate cover image using GPT Image and save it
  */
 async function generateAndSaveImage(
     prompt: string,
@@ -199,8 +244,12 @@ async function main(): Promise<void> {
     // Generate and save the cover image
     const savedPath = await generateAndSaveImage(imagePrompt, openai, postPath);
 
+    // Update the blog post frontmatter with heroImage property
+    await updatePostFrontmatter(postPath, savedPath);
+
     console.log("\n🎉 Success! Cover image generation complete.");
     console.log(`   Image saved at: ${savedPath}`);
+    console.log(`   Blog post updated: ${postPath}`);
 }
 
 main()
