@@ -5,8 +5,9 @@ on:
     paths:
       - 'src/content/blog/**.md'
 permissions:
-  contents: write
-  pull-requests: read
+  contents: write  # Required to commit and push generated images
+  pull-requests: read  # Required to read PR information
+  issues: write  # Required to comment on PRs (PR comments use issues API)
 
 jobs:
   generate-covers:
@@ -113,23 +114,13 @@ jobs:
           script: |
             const fs = require('fs');
             const newPosts = fs.readFileSync('new_posts.txt', 'utf8').trim().split('\n');
-            
             const postList = newPosts.map(p => `- \`${p}\``).join('\n');
             
-            github.rest.issues.createComment({
+            await github.rest.issues.createComment({
               issue_number: context.issue.number,
               owner: context.repo.owner,
               repo: context.repo.repo,
-              body: `## 🎨 Cover Images Generated
-              I've automatically generated cover images for the following blog posts:
-
-              ${postList}
-
-              The images have been committed to this PR. Please review them in the \`src/assets/\` directory.
-
-              **Format:** WebP (1536×1024)  
-              **Model:** GPT-Image-1.5  
-              **Quality:** High`
+              body: `## 🎨 Cover Images Generated\n\nI've automatically generated cover images for the following blog posts:\n\n${postList}\n\nThe images have been committed to this PR. Please review them in the \`src/assets/\` directory.\n\n**Format:** WebP (1536×1024)\n**Model:** GPT-Image-1.5\n**Quality:** High`
             });
             
       - name: Comment on PR (failure)
@@ -137,11 +128,9 @@ jobs:
         uses: actions/github-script@v7
         with:
           script: |
-            github.rest.issues.createComment({
+            await github.rest.issues.createComment({
               issue_number: context.issue.number,
               owner: context.repo.owner,
               repo: context.repo.repo,
-              body: `## ❌ Cover Image Generation Failed
-
-              There was an error generating cover images for this PR. Please check the [workflow logs](${context.payload.repository.html_url}/actions/runs/${context.runId}) for details.`
+              body: `## ❌ Cover Image Generation Failed\n\nThere was an error generating cover images for this PR. Please check the [workflow logs](${context.payload.repository.html_url}/actions/runs/${context.runId}) for details.\n\nCommon issues:\n- OpenAI API key not configured or invalid\n- OpenAI API rate limits or quota exceeded\n- Invalid blog post format or content\n\nYou can manually generate covers using:\n\`\`\`bash\nnpm run generate-cover -- --post src/content/blog/your-post.md\n\`\`\``
             });
