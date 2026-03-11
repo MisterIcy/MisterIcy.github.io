@@ -7,6 +7,7 @@ import SEOHead from '../components/SEOHead.astro';
 import Footer from '../components/Footer.astro';
 import FormattedDate from '../components/FormattedDate.astro';
 import Header from '../components/Header.astro';
+import AuthorAvatar from '../assets/profile.webp';
 import { SITE_AUTHOR, SITE_URL } from '../consts';
 
 type Props = CollectionEntry<'blog'>['data'] & { 
@@ -33,6 +34,7 @@ const displayAuthor = author || {
 	name: SITE_AUTHOR.name,
 	bio: SITE_AUTHOR.bio,
 	social: SITE_AUTHOR.social,
+	image: AuthorAvatar,
 };
 
 const heroImageAlt = heroImage ? `${title} - Hero Image` : '';
@@ -209,9 +211,17 @@ const calculatedReadingTime = readingTime || 1;
 							<div class="flex items-start gap-4">
 								<div class="flex-shrink-0">
 									<div class="w-16 h-16 rounded-full bg-slate-700 flex items-center justify-center overflow-hidden border-2 border-accent/30">
-										<svg class="w-8 h-8 text-muted" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
-											<path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd" />
-										</svg>
+										{displayAuthor.image ? (
+											typeof displayAuthor.image === 'object' && 'src' in displayAuthor.image ? (
+												<Image src={displayAuthor.image} alt={displayAuthor.name} class="w-full h-full object-cover" width={64} height={64} />
+											) : (
+												<img src={displayAuthor.image} alt={displayAuthor.name} class="w-full h-full object-cover" width={64} height={64} />
+											)
+										) : (
+											<svg class="w-8 h-8 text-muted" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
+												<path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd" />
+											</svg>
+										)}
 									</div>
 								</div>
 								<div class="flex-1">
@@ -365,9 +375,17 @@ const calculatedReadingTime = readingTime || 1;
 						<div class="flex items-start gap-4">
 							<div class="flex-shrink-0">
 								<div class="w-16 h-16 rounded-full bg-slate-700 flex items-center justify-center overflow-hidden border-2 border-accent/30">
-									<svg class="w-8 h-8 text-muted" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
-										<path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd" />
-									</svg>
+									{displayAuthor.image ? (
+										typeof displayAuthor.image === 'object' && 'src' in displayAuthor.image ? (
+											<Image src={displayAuthor.image} alt={displayAuthor.name} class="w-full h-full object-cover" width={64} height={64} />
+										) : (
+											<img src={displayAuthor.image} alt={displayAuthor.name} class="w-full h-full object-cover" width={64} height={64} />
+										)
+									) : (
+										<svg class="w-8 h-8 text-muted" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
+											<path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd" />
+										</svg>
+									)}
 								</div>
 							</div>
 							<div class="flex-1 min-w-0">

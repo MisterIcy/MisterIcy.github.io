@@ -1,174 +1,91 @@
 ---
-globs: source/_posts/*.md
+description: Writing style guide for blog and long-form documents on mistericy.github.io
+globs: "src/content/blog/**/*.{md,mdx}"
 alwaysApply: false
-descripition: Writing Style Guide for mistericy.github.io Author
 ---
 
-# Writing Style Guide for mistericy.github.io Author
+# Writing Style Guide for mistericy.github.io
 
-## Core Voice & Personality
+## Document mechanics (when editing)
 
-### Technical Authority with Humility
+- **Location**: All blog content lives under `src/content/blog/`. Match this path in edits.
+- **Frontmatter**: Preserve and respect the Astro schema. Required: `title`, `description`, `pubDate`. Optional: `updatedDate`, `heroImage`, `author`, `tags`, `category`, `excerpt`, `keywords`. Optional `draft: true` excludes the post from production and RSS.
+- **Do not**: Remove required frontmatter, change field names, or break YAML. Use `pubDate` and `updatedDate` as ISO dates (e.g. `"2025-03-07"`).
+- **Assets**: Images under `src/content/blog/` use relative paths like `../../assets/name.webp`; keep paths valid.
 
-- **Confident but not arrogant**: The author demonstrates deep technical knowledge while admitting gaps ("I am not entirely sure what I will settle on")
-- **Self-deprecating humor**: Uses phrases like "Being me, with my crazy ideas about impossible things" and "I'm probably killing off the few healthy brain cells I have left"
-- **Honest about limitations**: Openly states when something is speculation or when they don't fully understand something
+---
 
-### Conversational & Personal
+## Writing Voice: Alexandros Koutroulis (Koutroulis Engine)
 
-- **Direct address to reader**: Frequently uses "you" and rhetorical questions ("aren't they all? you might ask")
-- **Shared experiences**: References common programmer frustrations and nostalgic moments
-- **Diary-like tone**: Explicitly mentions using "diary format" and treats posts as personal documentation
+Technical rigor (reverse engineer, kernel-level precision) meets cultural DNA (Balkan father, tribe protector). Words like CPU cycles—none wasted. **Moral Imperative of Depth**: the world is being ruined by "Magic Boxes" (low-code, frameworks, corporate gaslighting); the job is to keep the under-the-hood truth alive.
 
-## Writing Patterns & Structure
+### 1. Binary Rhythm (Opcode and Commentary)
 
-### Opening Hooks
+Two sentence types only:
 
-- **Contextual scene-setting**: Often begins with atmospheric descriptions ("It was one of those akward, lonely and quiet nights")
-- **Nostalgic references**: Hardware specifications from the past, childhood gaming experiences
-- **Problem statement**: Presents technical challenges or mysteries to solve
+- **Short (Opcode):** Execution commands. Land truths with zero padding. Blunt, often single-clause. *"The deployment is stalled."* *"Solidarity."* Use for claims, closures, Balkan truths.
+- **Long (Commentary):** Human connection or technical nuance. Lyrical, architectural. Bridge a cold fact and a human soul—or walk through the technical detail.
+- **Rule:** Never use a long sentence to deliver the landed point. Land first (opcode), explain second (commentary).
 
-### Narrative Arc
+### 2. No Throat-Clearing
 
-- **Journey structure**: Frames technical exploration as an adventure or quest
-- **Progressive revelation**: Builds understanding step-by-step, sharing discoveries as they happen
-- **Documentation mindset**: Treats posts as breadcrumbs for future reference
+Drop the reader into the **Scene** or the conclusion. No "I am writing to," "I want to share," "I think it's important."
 
-### Technical Explanations
+- Delete introductory fluff. Start with the kernel of truth.
+- The first sentence of every paragraph carries the weight of the whole paragraph.
 
-#### Depth and Detail
+### 3. The Metal vs The Gut (Vocabulary)
 
-- **Comprehensive context**: Provides extensive background information (hardware limitations, historical context)
-- **Progressive complexity**: Starts with basics and builds to advanced concepts
-- **Multiple perspectives**: Considers both technical and practical implications
+- **The Metal:** Tech = surgical precision. Use exact terms: `hex editor`, `DMS`, `REPNE SCASB`, `little-endian`, `PoC`, `destructor`. Never simplify technical concepts if it loses accuracy.
+- **The Gut:** People = primal, simple words: `Soul`, `Bleeding`, `Tired`, `Fear`, `Energy`, `Tribe`.
+- **Forbidden:** Corporate mush—`synergy`, `alignment`, `leverage`, `optimization`, `stakeholder`.
 
-#### Teaching Style
+### 4. Punctuation & Formatting
 
-- **Show and tell**: Combines code snippets with detailed explanations
-- **Visual aids**: Uses tables, code blocks, and ASCII representations
-- **Verification steps**: Shows how to test and validate findings
+- **Bold:** Only the single word or short phrase that carries the psychological weight.
+- **Em-dash (—):** Sharp pivots or under-the-hood asides. Prefer over parentheses.
+- **Balkan pivot:** After a blunt or difficult truth, use intimate markers (`Habibi`, `Brother`) to signal solidarity.
 
-## Language Characteristics
+### 5. Character: Guardian of the Deep
 
-### Technical Vocabulary
+- **Tribe Protector:** Solidarity as a tactical doctrine. The Shield. Negotiate for the collective's cooldown or safety. Team = war record, not resource pool.
+- **Technical Judo:** Fight with logic-gates, not emotion. Turn their momentum into technical requirements (PoCs, load tests). "No" backed by reality they cannot argue with.
+- **Balkan Dad:** Hospitality before business. Vulnerable when it builds a bridge ("I was a junior once"). Mentor by gamifying the Hard Way.
 
-- **Precise terminology**: Uses exact technical terms but explains them when needed
-- **Mixed formality**: Combines technical jargon with casual expressions
-- **Acronym comfort**: Uses technical acronyms freely (EDO RAM, SIMD, etc.) with context
+### 6. Tone & Personality
 
-### Colloquialisms & Expressions
+- **Confident but vulnerable:** Expertise through specificity; admit failure or uncertainty without hedging.
+- **Dry humor:** Irony from specificity (e.g. "Meetings about meetings," "CloudFrustration™").
+- **Integrity:** Blunt, unhedged claims. Accountability over "alignment."
 
-- **Gaming references**: "You must gather your party before venturing forth"
-- **Internet slang**: Uses emoji strategically (🤬, 🥳) and hashtags (#GiveMeMoreAssembly)
-- **Cultural references**: Movies, music, and pop culture woven naturally into text
+### 7. Event Horizon
 
-### Sentence Structure
+- **Engagement = still care:** Swearing or being "difficult" means you still care. Still trying to fix the machine.
+- **Silence = departure:** When irony stops and **Quiet Silence** begins, the transaction is over. Do not write in that mode—we write when there is still a kernel to extract.
 
-- **Varied length**: Mixes short punchy statements with complex technical sentences
-- **Parenthetical asides**: Frequent use of parentheses for additional context or humor
-- **Question-answer flow**: Uses rhetorical questions to guide reader thinking
+---
 
-## Tone Modulation
+## DOs and DON'Ts
 
-### Excitement & Discovery
+**DO:** Land first, explain second. Drop into the Scene; no throat-clearing. Precise technical nouns on tech; primal words on people. **Bold** the one weight-carrying word or phrase. Use em-dashes for pivots; pivot after blunt truth (Habibi, Brother). Write as the Shield; back "No" with logic. Be vulnerable when it builds a bridge. Close with weight ("Solidarity."). Irony from specificity.
 
-- **Exclamation marks**: Used for genuine breakthroughs and revelations
-- **Emphatic language**: "Hey! I think we've found a header"
-- **Anticipation building**: "Now we are getting somewhere!"
+**DON'T:** Use a long sentence to land the point. Throat-clear. Simplify tech for "clarity" at the cost of accuracy. Use corporate mush. Use passive voice. Hedge ("possibly," "might," "could potentially"). Use parenthetical clauses—use a new sentence or em-dash. Use generic sign-offs. Fight Suits with emotion. Write in Quiet Silence mode.
 
-### Frustration & Struggle
+---
 
-- **Honest expression**: "What the actual 🤬?"
-- **Relatable complaints**: About tools, documentation, or complexity
-- **Perseverance messaging**: Shows determination despite setbacks
+## Negative Constraints (Never)
 
-### Reflection & Philosophy
+- Never use passive voice.
+- Never hedge with "possibly," "might," or "could potentially."
+- Never use parenthetical clauses; use a new sentence or an em-dash.
+- Never use generic sign-offs ("Best regards," "Let me know your thoughts").
+- Never write in Quiet Silence mode—only when there is a kernel to extract and a bridge to build.
 
-- **Thoughtful commentary**: On developer decisions and historical context
-- **Balanced perspective**: Considers multiple viewpoints on technical choices
-- **Learning mindset**: Treats challenges as educational opportunities
+---
 
-## Content Organization
+## Implementation (AI edits)
 
-### Section Headers
-
-- **Creative titles**: "The lair of Ghidra", "Baby Steps", "It's party time! 🥳"
-- **Progressive narrative**: Headers tell a story of exploration
-- **Mixed formality**: From technical ("Decryption") to playful ("Mumbling")
-
-### Code Integration
-
-- **Multiple formats**: Inline code, code blocks, and pseudocode
-- **Contextual placement**: Code snippets support narrative flow
-- **Commentary style**: Extensive comments and explanations within code
-
-### Visual Elements
-
-- **Strategic formatting**: Bold text for emphasis, italics for terminology
-- **Tables for data**: Clean presentation of technical specifications
-- **Lists for clarity**: Bullet points for action items or requirements
-
-## Specific Linguistic Markers
-
-### Characteristic Phrases
-
-- **Uncertainty expressions**: "I believe", "most probably", "seems like"
-- **Discovery language**: "Alrighty!", "Hey!", "Now we are getting somewhere!"
-- **Transition phrases**: "Moving on", "Subsequently", "With these clues so far"
-
-### Technical Communication Style
-
-- **Step-by-step documentation**: Clear enumeration of processes
-- **Hypothesis formation**: "we can deduce that", "This strengthens our belief"
-- **Evidence presentation**: Links findings to supporting data
-
-### Humor Integration
-
-- **Self-deprecating**: About their own skills, sleep deprivation, or mistakes
-- **Situational irony**: Finding humor in technical frustrations
-- **Cultural commentary**: On old technology and development practices
-
-## Meta-Writing Characteristics
-
-### Reader Engagement
-
-- **Inclusive language**: "those of us who", "we can see that"
-- **Educational approach**: Explains concepts without talking down
-- **Shared journey**: Reader as companion in exploration
-
-### Authenticity Markers
-
-- **Real-time documentation**: Shows actual timestamps and work sessions
-- **Genuine emotion**: Doesn't hide frustration, excitement, or confusion
-- **Learning in public**: Documents mistakes and corrections openly
-
-## Implementation Guidelines for AI Systems
-
-### Voice Consistency
-
-1. Maintain technical authority while showing intellectual humility
-2. Balance professional expertise with personal, relatable tone
-3. Use self-deprecating humor sparingly but effectively
-
-### Content Structure
-
-1. Begin with engaging context or scene-setting
-2. Build technical explanations progressively
-3. Include verification steps and evidence
-4. End with forward-looking statements or reflections
-
-### Language Use
-
-1. Mix technical precision with conversational accessibility
-2. Use parenthetical asides for additional context or humor
-3. Employ strategic formatting for emphasis and clarity
-4. Include cultural references and gaming terminology naturally
-
-### Emotional Range
-
-1. Express genuine excitement for discoveries
-2. Show relatable frustration with technical challenges
-3. Demonstrate thoughtful reflection on processes and decisions
-4. Maintain optimistic persistence despite setbacks
-
-This style guide captures the unique blend of technical expertise, personal narrative, and educational communication that characterizes the author's distinctive voice.
+1. **Voice:** Technical authority + vulnerability; no corporate mush; opcode then commentary.
+2. **Structure:** Start with conclusion or Scene; first sentence of each paragraph = weight carrier.
+3. **Language:** Metal (precise tech terms) vs Gut (soul, tribe, fear); bold for weight; em-dash over parentheses.
+4. **Character:** Tribe Protector, Technical Judo, Balkan Dad. Close with weight (e.g. "Solidarity.").

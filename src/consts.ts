@@ -10,7 +10,7 @@ export const SITE_URL = 'https://mistericy.github.io';
 // Author information
 export const SITE_AUTHOR = {
 	name: 'Alexandros Koutroulis',
-	bio: 'Senior Software Engineer with over 10 years of professional experience and nearly 30 years of coding experience. Specializing in backend engineering, debugging, reverse engineering, and SaaS architecture. Currently building AI platforms and sharing technical insights from the trenches.',
+	bio: 'Senior Software Engineer with over 10 years of professional experience and nearly 30 years of coding experience. Specializing in backend engineering, debugging, reverse engineering, and PaaS & Web Development. Engineering Manager of the eFront\'s Engineering Team, sharing technical insights from the trenches.',
 	jobTitle: 'Senior Software Engineer',
 	worksFor: {
 		name: 'Epignosis',
