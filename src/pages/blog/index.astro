@@ -7,6 +7,7 @@ import Footer from '../../components/Footer.astro';
 import FormattedDate from '../../components/FormattedDate.astro';
 import Header from '../../components/Header.astro';
 import { SITE_DESCRIPTION, SITE_TITLE, SITE_URL } from '../../consts';
+import { getReadingStats } from '../../lib/readingTime';
 
 // Filter out drafts in production, but show them in development
 const allPosts = await getCollection('blog');
@@ -93,7 +94,9 @@ const itemListSchema = {
 			{posts.length > 0 ? (
 				<div class="masonry-grid">
 					{
-						posts.map((post) => (
+						posts.map((post) => {
+							const { minutes: readingMinutes } = getReadingStats(post.body ?? '');
+							return (
 							<article class="post-card group">
 								<a 
 									href={`/blog/${post.id}/`}
@@ -126,26 +129,35 @@ const itemListSchema = {
 												{post.data.excerpt || post.data.description}
 											</p>
 										)}
-										<div class="flex items-center justify-between text-sm text-muted">
+										<div class="flex flex-wrap items-center justify-between gap-2 text-sm text-muted">
 											<time 
 												datetime={post.data.pubDate.toISOString()}
 												class="flex items-center gap-2"
 											>
-												<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+												<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
 													<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
 												</svg>
 												<FormattedDate date={post.data.pubDate} />
 											</time>
-											{post.data.tags && post.data.tags.length > 0 && (
-												<span class="text-xs text-muted">
-													{post.data.tags.length} {post.data.tags.length === 1 ? 'tag' : 'tags'}
+											<span class="flex items-center gap-3 text-xs md:text-sm">
+												<span class="flex items-center gap-2" aria-label={`Reading time: ${readingMinutes} minutes`}>
+													<svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+														<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+													</svg>
+													{readingMinutes} min read
 												</span>
-											)}
+												{post.data.tags && post.data.tags.length > 0 && (
+													<span class="text-muted">
+														{post.data.tags.length} {post.data.tags.length === 1 ? 'tag' : 'tags'}
+													</span>
+												)}
+											</span>
 										</div>
 									</div>
 								</a>
 							</article>
-						))
+							);
+						})
 					}
 				</div>
 			) : (

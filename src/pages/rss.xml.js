@@ -1,6 +1,7 @@
 import { getCollection } from 'astro:content';
 import rss from '@astrojs/rss';
 import { SITE_AUTHOR, SITE_DESCRIPTION, SITE_TITLE } from '../consts';
+import { getReadingStats } from '../lib/readingTime';
 
 export async function GET(context) {
 	const allPosts = await getCollection('blog');
@@ -15,8 +16,11 @@ export async function GET(context) {
 				name: SITE_AUTHOR.name,
 				social: SITE_AUTHOR.social,
 			};
+			const { minutes } = getReadingStats(post.body ?? '');
+			const readSuffix = ` (${minutes} min read)`;
 			return {
 				...post.data,
+				description: `${post.data.description}${readSuffix}`,
 				link: `/blog/${post.id}/`,
 				author: author.name,
 				categories: [

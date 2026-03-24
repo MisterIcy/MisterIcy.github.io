@@ -52,8 +52,6 @@ function slugify(text: string): string {
 		.trim();
 }
 
-// Calculate reading time from content if not provided
-// This is a fallback - ideally calculated from raw markdown
 const calculatedReadingTime = readingTime || 1;
 ---
 
@@ -80,6 +78,7 @@ const calculatedReadingTime = readingTime || 1;
 				schema={{
 					type: 'BlogPosting',
 					post: post,
+					readingTimeMinutes: calculatedReadingTime,
 					breadcrumbs: [
 						{ name: 'Home', url: '/' },
 						{ name: 'Blog', url: '/blog/' },
@@ -148,7 +147,11 @@ const calculatedReadingTime = readingTime || 1;
 							<FormattedDate date={pubDate} />
 						</time>
 						
-						<span class="flex items-center gap-2" aria-label={`Reading time: ${calculatedReadingTime} minutes`}>
+						<span
+							id="article-reading-time"
+							class="flex items-center gap-2"
+							aria-label={`Reading time: ${calculatedReadingTime} minutes`}
+						>
 							<svg class="w-4 h-4 md:w-5 md:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
 								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
 							</svg>
@@ -461,27 +464,9 @@ const calculatedReadingTime = readingTime || 1;
 
 		<Footer />
 
-		<!-- Client-side script for TOC smooth scroll, heading IDs, and reading time -->
+		<!-- Client-side script for TOC smooth scroll and heading IDs -->
 		<script>
 			document.addEventListener('DOMContentLoaded', () => {
-				// Calculate actual reading time from article content
-				const articleContent = document.querySelector('article .prose-custom');
-				if (articleContent) {
-					const text = articleContent.textContent || '';
-					const wordCount = text.split(/\s+/).filter(word => word.length > 0).length;
-					const readingTime = Math.max(1, Math.ceil(wordCount / 200)); // 200 words per minute
-					
-				// Update reading time display
-				const readingTimeElement = document.querySelector('[aria-label*="Reading time"]');
-				if (readingTimeElement) {
-					readingTimeElement.setAttribute('aria-label', `Reading time: ${readingTime} minutes`);
-					const timeText = readingTimeElement.querySelector('.reading-time-text');
-					if (timeText) {
-						timeText.textContent = `${readingTime} min read`;
-					}
-				}
-				}
-
 				// Add IDs to headings for TOC navigation
 				const headings = document.querySelectorAll('article h2, article h3');
 				headings.forEach((heading) => {

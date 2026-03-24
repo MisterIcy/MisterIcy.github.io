@@ -8,16 +8,18 @@
     "preview": "astro preview",
     "astro": "astro",
     "draft": "node scripts/create-draft.js",
-    "generate-cover": "tsx scripts/generate-cover.ts"
+    "generate-cover": "tsx scripts/generate-cover.ts",
+    "tts-post": "tsx scripts/transcribe-post.ts"
   },
   "dependencies": {
     "@astrojs/mdx": "^4.3.13",
     "@astrojs/rss": "^4.0.15",
     "@astrojs/sitemap": "^3.7.0",
+    "@elevenlabs/elevenlabs-js": "^2.40.0",
     "astro": "^5.16.11",
-    "dotenv": "^17.2.3",
+    "dotenv": "^17.3.1",
     "gray-matter": "^4.0.3",
-    "openai": "^6.17.0",
+    "openai": "^6.32.0",
     "sharp": "^0.34.3",
     "yargs": "^18.0.0"
   },

@@ -33,6 +33,8 @@ interface Props {
 		type?: 'BlogPosting' | 'Article' | 'Person' | 'Organization' | 'WebSite' | 'Blog' | Array<'BlogPosting' | 'Article' | 'Person' | 'Organization' | 'WebSite' | 'Blog'>;
 		post?: CollectionEntry<'blog'>;
 		breadcrumbs?: Array<{ name: string; url: string }>;
+		/** ISO 8601 duration in JSON-LD (`timeRequired`), e.g. 5 → PT5M */
+		readingTimeMinutes?: number;
 	};
 	// Additional meta
 	robots?: string;
@@ -257,10 +259,15 @@ const buildSchema = () => {
 			blogPosting.keywords = post.data.tags.join(', ');
 		}
 
+		const readingMinutes = schema?.readingTimeMinutes;
+		if (typeof readingMinutes === 'number' && readingMinutes > 0) {
+			blogPosting.timeRequired = `PT${readingMinutes}M`;
+		}
+
 		schemas.push(blogPosting);
 
 		// Article schema (additional) - using same author and publisher schemas for consistency
-		const articleSchema = {
+		const articleSchema: Record<string, any> = {
 			'@context': 'https://schema.org',
 			'@type': 'Article',
 			headline: post.data.title,
@@ -275,6 +282,9 @@ const buildSchema = () => {
 				articleSection: post.data.category,
 			}),
 		};
+		if (typeof readingMinutes === 'number' && readingMinutes > 0) {
+			articleSchema.timeRequired = `PT${readingMinutes}M`;
+		}
 		schemas.push(articleSchema);
 	}
 
