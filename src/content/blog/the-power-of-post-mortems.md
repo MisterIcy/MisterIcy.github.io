@@ -5,7 +5,7 @@ description: >-
   blameless review, and tracked follow-ups that turn write-ups into change.
 pubDate: '2026-03-27'
 updatedDate: '2026-03-27'
-draft: true
+draft: false
 category: People & Teams
 tags:
   - Post-Mortem

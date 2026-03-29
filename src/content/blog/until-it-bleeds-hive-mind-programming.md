@@ -32,6 +32,7 @@ keywords:
   - team programming techniques
   - cognitive load distribution
   - software development teams
+draft: false
 ---
 
 There's this moment when you realize you've been banging your head against the same wall for weeks. Not days. *Weeks*. And the wall hasn't moved. Not even a crack. It's a fact that you *can't win this fight*.

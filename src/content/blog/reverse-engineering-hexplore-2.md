@@ -31,6 +31,7 @@ keywords:
   - string table binary format
   - 1990s game reverse engineering
   - Hexplore game analysis
+draft: false
 ---
 
 Video games are a unique kind of beast in the realm of software development—*aren't they all?* you might ask, and you'd be right. From operating systems to applications written for embedded systems, and from servers and services to ERPs and CRMs, each domain has its own quirks. I won't claim that video games belong to the toughest or weirdest domain—such a statement would be a blatant exaggeration. However, they are unique, both because of the constraints they impose on developers and the ways in which companies (and by extension, developers) get paid for them.

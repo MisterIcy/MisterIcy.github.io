@@ -29,6 +29,7 @@ keywords:
   - decompilation techniques
   - 1990s game reverse engineering
   - Hexplore game analysis
+draft: false
 ---
 
 Recently, I came across a game that's nearly a quarter of a century old: [Hexplore](https://www.gog.com/en/game/hexplore). It's an Action / Adventure game with RPG elements and the GOG description reads:

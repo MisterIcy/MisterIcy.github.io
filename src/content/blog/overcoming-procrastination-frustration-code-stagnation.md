@@ -31,6 +31,7 @@ keywords:
   - time management software development
   - breaking through procrastination
   - developer burnout prevention
+draft: false
 ---
 
 > A badly documented API is worse than a completely undocumented API.

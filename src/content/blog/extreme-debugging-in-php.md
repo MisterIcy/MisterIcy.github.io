@@ -34,6 +34,7 @@ keywords:
   - PHP custom build
   - PHP internals debugging
   - advanced PHP debugging
+draft: false
 ---
 
 It was one of those awkward, lonely and quiet nights. I could not tell what [Spotify](https://open.spotify.com/track/0nMKVMCXCmRplsKKLt1TTh) was playing, nor what time it was. My eyes were fixed on my terminal's cursor. It was blinking, constantly blinking, like it was taunting me.

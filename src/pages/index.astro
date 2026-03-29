@@ -1,9 +1,17 @@
 ---
+import { getCollection } from 'astro:content';
 import BaseHead from '../components/BaseHead.astro';
 import SEOHead from '../components/SEOHead.astro';
 import Footer from '../components/Footer.astro';
 import Header from '../components/Header.astro';
 import { SITE_DESCRIPTION, SITE_TITLE } from '../consts';
+
+const allPosts = await getCollection('blog');
+const isDev = import.meta.env.DEV;
+const sortedPosts = allPosts
+	.filter((post) => isDev || !post.data.draft)
+	.sort((a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf());
+const latestPost = sortedPosts[0] ?? null;
 ---
 
 <!doctype html>
@@ -46,16 +54,33 @@ import { SITE_DESCRIPTION, SITE_TITLE } from '../consts';
 					
 					<!-- Terminal Content -->
 					<div class="p-6 font-mono text-sm md:text-base leading-relaxed text-left">
-						<div class="text-accent font-medium">user@binary-brew:~$</div>
-						<div class="mt-2 text-slate-300">
-							<span class="text-accent font-medium">cat</span> latest-post.md
-						</div>
-						<div class="mt-4 text-muted italic">
-							# War stories and reflections...
-						</div>
-						<div class="mt-2 text-muted italic">
-							from debugging and DevOps to psychology, teams, and beyond.
-						</div>
+						<div class="text-accent font-medium">user@binary-brew:~$ cat <span class="text-slate-300">latest-post.md</span></div>					
+						
+						{latestPost ? (
+							<a
+								href={`/blog/${latestPost.id}/`}
+								class="group mt-4 block rounded-md text-left no-underline transition-colors hover:text-accent focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+								aria-label={`Read latest post: ${latestPost.data.title}`}
+							>
+								<div class="text-muted italic group-hover:text-accent">
+									# {latestPost.data.title}
+								</div>
+								{(latestPost.data.excerpt || latestPost.data.description) && (
+									<div class="mt-2 text-muted italic group-hover:text-slate-300">
+										{latestPost.data.excerpt || latestPost.data.description}
+									</div>
+								)}
+							</a>
+						) : (
+							<>
+								<div class="mt-4 text-muted italic">
+									# War stories and reflections...
+								</div>
+								<div class="mt-2 text-muted italic">
+									from debugging and DevOps to psychology, teams, and beyond.
+								</div>
+							</>
+						)}
 						<div class="mt-4">
 							<span class="text-accent font-medium">user@binary-brew:~$</span>
 							<span class="animate-pulse text-accent">_</span>
