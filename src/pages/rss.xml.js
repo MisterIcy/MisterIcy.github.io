@@ -14,12 +14,11 @@ export async function GET(context) {
 		description: SITE_DESCRIPTION,
 		site: context.site,
 		customData: `
-			<author>${SITE_AUTHOR.name}</author>
 			<language>en-US</language>
 			<copyright>Copyright ${new Date().getFullYear()} ${SITE_AUTHOR.name}</copyright>
 			<generator>Astro</generator>
-			<pubDate>${latestPost.toISOString()}</pubDate>
-			<lastBuildDate>${new Date().toISOString()}</lastBuildDate>
+			<pubDate>${latestPost.toUTCString()}</pubDate>
+			<lastBuildDate>${new Date().toUTCString()}</lastBuildDate>
 		`,
 		items: posts.map((post) => {
 			const author = post.data.author || {
@@ -32,7 +31,6 @@ export async function GET(context) {
 				title: post.data.title,
 				link: `/blog/${post.id}/`,
 				description: `${post.data.description}${readSuffix}`,
-				author: author.name,
 				categories: post.data.category ? [post.data.category] : [],
 				guid: post.id,
 				pubDate: post.data.pubDate,
