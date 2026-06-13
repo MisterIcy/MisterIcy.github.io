@@ -1,120 +1,88 @@
 {
-  "$ref": "#/definitions/blog",
-  "definitions": {
-    "blog": {
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "title": {
+      "type": "string"
+    },
+    "description": {
+      "type": "string"
+    },
+    "draft": {
+      "default": true,
+      "type": "boolean"
+    },
+    "pubDate": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "updatedDate": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "heroImage": {
+      "type": "string"
+    },
+    "author": {
       "type": "object",
       "properties": {
-        "title": {
+        "name": {
           "type": "string"
         },
-        "description": {
+        "bio": {
           "type": "string"
         },
-        "draft": {
-          "type": "boolean",
-          "default": true
-        },
-        "pubDate": {
-          "anyOf": [
-            {
-              "type": "string",
-              "format": "date-time"
-            },
-            {
-              "type": "string",
-              "format": "date"
-            },
-            {
-              "type": "integer",
-              "format": "unix-time"
-            }
-          ]
-        },
-        "updatedDate": {
-          "anyOf": [
-            {
-              "type": "string",
-              "format": "date-time"
-            },
-            {
-              "type": "string",
-              "format": "date"
-            },
-            {
-              "type": "integer",
-              "format": "unix-time"
-            }
-          ]
-        },
-        "heroImage": {
+        "image": {
           "type": "string"
         },
-        "author": {
+        "social": {
           "type": "object",
           "properties": {
-            "name": {
+            "twitter": {
               "type": "string"
             },
-            "bio": {
+            "linkedin": {
               "type": "string"
             },
-            "image": {
+            "github": {
               "type": "string"
             },
-            "social": {
-              "type": "object",
-              "properties": {
-                "twitter": {
-                  "type": "string"
-                },
-                "linkedin": {
-                  "type": "string"
-                },
-                "github": {
-                  "type": "string"
-                },
-                "website": {
-                  "type": "string",
-                  "format": "uri"
-                }
-              },
-              "additionalProperties": false
+            "website": {
+              "type": "string",
+              "format": "uri"
             }
-          },
-          "required": [
-            "name"
-          ],
-          "additionalProperties": false
-        },
-        "tags": {
-          "type": "array",
-          "items": {
-            "type": "string"
           }
-        },
-        "category": {
-          "type": "string"
-        },
-        "excerpt": {
-          "type": "string"
-        },
-        "keywords": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
-        },
-        "$schema": {
-          "type": "string"
         }
       },
       "required": [
-        "title",
-        "description",
-        "pubDate"
-      ],
-      "additionalProperties": false
+        "name"
+      ]
+    },
+    "tags": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "category": {
+      "type": "string"
+    },
+    "excerpt": {
+      "type": "string"
+    },
+    "keywords": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "$schema": {
+      "type": "string"
     }
   },
-  "$schema": "http://json-schema.org/draft-07/schema#"
+  "required": [
+    "title",
+    "description",
+    "pubDate"
+  ]
 }

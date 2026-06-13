@@ -2,7 +2,6 @@
 
 import mdx from '@astrojs/mdx';
 import sitemap from '@astrojs/sitemap';
-import tailwind from '@astrojs/tailwind';
 import { defineConfig } from 'astro/config';
 import matter from 'gray-matter';
 import { readFileSync } from 'node:fs';
@@ -48,5 +47,5 @@ export default defineConfig({
 				}
 			},
 		}),
-		tailwind()],
+		],
 });
