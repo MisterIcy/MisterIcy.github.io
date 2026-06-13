@@ -21,18 +21,17 @@ export async function GET(context) {
 			<lastBuildDate>${new Date().toUTCString()}</lastBuildDate>
 		`,
 		items: posts.map((post) => {
-			const author = post.data.author || {
-				name: SITE_AUTHOR.name,
-				social: SITE_AUTHOR.social,
-			};
 			const { minutes } = getReadingStats(post.body ?? '');
 			const readSuffix = ` (${minutes} min read)`;
+			// Use full absolute permalink as guid — RSS 2.0 spec requires globally unique identifier.
+			// Bare slug (post.id) breaks deduplication in Google's feed parser, Bing, Yandex, and Naver.
+			const postURL = new URL(`/blog/${post.id}/`, context.site).toString();
 			return {
 				title: post.data.title,
-				link: `/blog/${post.id}/`,
+				link: postURL,
 				description: `${post.data.description}${readSuffix}`,
 				categories: post.data.category ? [post.data.category] : [],
-				guid: post.id,
+				guid: postURL,
 				pubDate: post.data.pubDate,
 			};
 		}),

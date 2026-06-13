@@ -50,7 +50,7 @@ const {
 	type = 'website',
 	article,
 	schema,
-	robots = 'index, follow',
+	robots = 'index, follow, max-image-preview:large',
 	keywords,
 	canonical,
 } = Astro.props;
@@ -266,26 +266,8 @@ const buildSchema = () => {
 
 		schemas.push(blogPosting);
 
-		// Article schema (additional) - using same author and publisher schemas for consistency
-		const articleSchema: Record<string, any> = {
-			'@context': 'https://schema.org',
-			'@type': 'Article',
-			headline: post.data.title,
-			description: post.data.description,
-			image: heroImageURL?.toString(),
-			datePublished: post.data.pubDate.toISOString(),
-			dateModified: (post.data.updatedDate || post.data.pubDate).toISOString(),
-			author: authorSchema,
-			publisher: publisherSchema,
-			inLanguage: SITE_LOCALE,
-			...(post.data.category && {
-				articleSection: post.data.category,
-			}),
-		};
-		if (typeof readingMinutes === 'number' && readingMinutes > 0) {
-			articleSchema.timeRequired = `PT${readingMinutes}M`;
-		}
-		schemas.push(articleSchema);
+		// BlogPosting is the correct and sufficient type for a personal blog.
+		// A separate Article schema for the same content is redundant per Google's documentation.
 	}
 
 	if (schema?.type === 'Person' || schemaTypes.includes('Person')) {
@@ -353,6 +335,21 @@ const buildSchema = () => {
 
 const schemas = buildSchema();
 const fullTitle = title === SITE_TITLE ? title : `${title} | ${SITE_TITLE}`;
+
+// Derive MIME type from image URL extension for og:image:type
+const imageMimeType = imageURL
+	? (() => {
+		const ext = imageURL.pathname.split('.').pop()?.toLowerCase() ?? '';
+		const mimeMap: Record<string, string> = {
+			webp: 'image/webp',
+			jpg: 'image/jpeg',
+			jpeg: 'image/jpeg',
+			png: 'image/png',
+			gif: 'image/gif',
+		};
+		return mimeMap[ext] ?? 'image/webp';
+	  })()
+	: undefined;
 ---
 
 <!-- Primary Meta Tags -->
@@ -373,10 +370,11 @@ const fullTitle = title === SITE_TITLE ? title : `${title} | ${SITE_TITLE}`;
 <meta property="og:description" content={description} />
 <meta property="og:site_name" content={SITE_NAME} />
 <meta property="og:locale" content={SITE_LOCALE} />
-{imageURL && <meta property="og:image" content={imageURL.toString()} />}
+{imageURL && (!imageWidth || imageWidth >= 1200) && <meta property="og:image" content={imageURL.toString()} />}
 {imageWidth && <meta property="og:image:width" content={imageWidth.toString()} />}
 {imageHeight && <meta property="og:image:height" content={imageHeight.toString()} />}
 {imageAlt && <meta property="og:image:alt" content={imageAlt} />}
+{imageURL && imageMimeType && <meta property="og:image:type" content={imageMimeType} />}
 
 {/* Article-specific OpenGraph tags */}
 {article && type === 'article' && (
