@@ -1,0 +1,15 @@
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 -c \"import sys,json,os; d=json.loads(os.environ.get('CLAUDE_TOOL_INPUT','{}')); f=d.get('file_path',''); sys.exit(0 if 'src/content/blog' in f and (f.endswith('.md') or f.endswith('.mdx')) else 1)\" && npm run generate-llms"
+          }
+        ]
+      }
+    ]
+  }
+}

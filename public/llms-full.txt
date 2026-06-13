@@ -1,0 +1,1637 @@
+# Binary Brew — Full Content
+
+> Brewing stories of software, systems, and the souls behind the code
+
+Complete text of all published posts on Binary Brew, a blog by Alexandros Koutroulis.
+For a structured index, see: https://mistericy.github.io/llms.txt
+
+---
+
+## The Power of Post-Mortems
+
+URL: https://mistericy.github.io/blog/the-power-of-post-mortems/
+Published: 2026-03-27
+Updated: 2026-03-27
+Category: People & Teams
+Tags: Post-Mortem, Incident Management, Engineering Management, Software Reliability, Blameless Culture, Accountability, Delegation, Site Reliability Engineering, DevOps Culture, Knowledge Sharing
+
+How post-mortems power teams: consequences after failure, what to document, blameless review, and tracked follow-ups that turn write-ups into change.
+
+I've had my fair share of odd jobs over the twenty years I've been in the workforce, and I'm proud of that pile &mdash; seriously. Blue-collar work, a helping hand in olive gathering, warehouse shifts &mdash; it gave me a perspective I couldn't have taken any other way. Now that I'm an engineering manager I still reach for those years when I apply principles and draw parallels. One parallel that stuck: *Were we on a factory floor &mdash; where mistakes are not easily forgiven; you can lose a limb or worse &mdash; the cost would be absurd.* Even when our mistakes land in a production system instead of a shop floor, that still does not let us off the hook for care, or for taking errors seriously.
+
+## A little story
+
+Software is not automatically harmless because it is intangible. Out here, in the world, it rides on machines that touch bodies. If you need a scene to anchor that &mdash; not for drama, for gravity &mdash; imagine the treatment room: the weight of a day pressing on a technician, a cursor hopping on a VT100-style terminal, a machine that is supposed to heal, humming like any other Tuesday. The [Therac-25](https://en.wikipedia.org/wiki/Therac-25) was that kind of object: a computer-controlled radiation-therapy linear accelerator &mdash; a design in which more of the safety story had migrated off electromechanical interlocks and into software on a PDP-11, leaving fewer of the old physical stops that simply *banged* shut when something was out of place.
+
+The failures were not a single typo in isolation. Investigators found a pattern:
+
+- **Race conditions and concurrency bugs**: Programming errors allowed operator workflows to move faster than the software’s safety checks, meaning an experienced hand could edit fields too quickly for the machine to register reality.
+- **Safety logic moved from hardware to software**: Critical physical interlocks and hardware stops were replaced by digital checks—which could silently fail while the interface continued to display normal operation.
+- **Operator interface weaknesses**: Sometimes the equipment simply *paused*, but manuals and training taught staff to press on, masking underlying issues.
+- **Misleading or absent feedback**:
+  - Patients reported violent, inappropriate sensations during overdoses even as staff stared at calm readouts.
+  - **Dosimeters and radiation monitors could show little or no delivery when a catastrophic beam had in fact fired.**
+  - **Ionization chambers could become saturated** and deliver inaccurate or misleading feedback to technicians.
+  - **Treatment printouts were not always enabled**, leaving some hospitals without a hard record when it was most needed.
+- **Magnitude of the overdoses**: The record includes beams **hundreds of times** higher than intended in typical failures, with some reconstructions suggesting even higher exposures.
+- **Scale of the disaster**: At least **six** major accidents occurred between **1985** and **1987**; **multiple patients died** from these overdoses and others suffered lifelong injury.
+
+Most of us do not ship into that exact corridor every day. Do not mistake distance for innocence. When stakes are high, a bug stops being a thought experiment and becomes dose, burn, paralysis &mdash; whatever your domain uses to measure harm that cannot be rolled back. Mistakes have consequences.
+
+**Post-mortems** sit in that chain &mdash; the natural consequence when something goes wrong.
+
+### And one more related to me
+
+So, here I am, new in my role, new in my shoes, sifting through emails and tasks, on a release day. We had done the *release conversation* a couple of times, and frankly I was starting to think that this wouldn't lead us anywhere: Without autonomy there is no ownership, and without ownership there's no responsibility. Ergo, I gave the autonomy to the team and my blessings for the release, and jumped into another meeting.
+
+Thankfully we release and deploy to a canary subset of our infrastructure, thus we were able to spot the error before it affected everyone. Unfortunately, there was no standard procedure for rolling back, handling the error and the likes. As you've already guessed, all hell broke loose, not because the team didn't have the capacity or the knowledge to address the issue, but because they hadn't been given, in the past, the autonomy, the ownership, and the responsibility to do so.
+
+Then, me be me, I joined a call, assisted debugging, we found the issue, we pinpointed the root-cause and discussed remediation. Acting as a parent, I requested that the release manager write a post-mortem about what went wrong. Here come consequences. And responsibility without consequences, is not responsibility. It's an illusion.
+
+## The Aenaon Cycle of Consequences
+
+In corporate jargon, the words **accountability** and **ownership** come up a lot &mdash; and more often than not, it's excruciatingly frustrating to understand these *abstract* concepts without concrete examples and patterns to follow.
+
+For me, things are pretty simple &mdash; we'll discuss, from a more philosophical angle, how to make those abstractions concrete.
+
+### Delegation
+
+Delegation is the act of *entrusting* a task or duty to another person, typically one who is less senior than oneself.
+
+It all starts with *delegation*: A task or duty you hold at hand and decide &mdash; for a reason or another &mdash; to hand it over to a colleague of yours; typically a direct report. It is something absolutely natural; we delegate tasks and responsibilities every day, even for the simplest things.
+
+*You'll cook dinner tonight* is the usual textbook example: the missus does the cooking, but from time to time, for this reason or that, she'll delegate cooking to me.
+
+When cooking is delegated, a certain level of autonomy needs to be given to me, so that I am able to perform my task.
+
+### Autonomy
+
+*Autonomy* comes from Greek, a fusion of the words autós (αυτός: self, same, by its own) and nomos (νόμος: law, custom). In our context, *autonomy* means that one has the ability to manage oneself; thus a level of freedom and control over a task, duty or territory.
+
+Proper *delegation* requires a certain level of *autonomy*. Without it, you are not delegating &mdash; you are *renting* someone's hands while you keep their judgement in a cage. Call it what you want on a slide; in the room, that's *micro-management* with better lighting. The difficult part is not drawing a line on an org chart. It is the hand on the throat relaxing. *Awarding* autonomy means accepting that someone else's tempo will not match yours beat for beat.
+
+I'll be blunt: **my** performance is nothing but the weighted sum of **their** work. I manage engineers. They carry the concrete weight &mdash; the debugging, the patches, the proof that the thing actually runs, the nights when the alert will not shut up. I carry the abstract load: direction, sequencing, shielding nonsense, making a space where concentration is still possible. The organization has given me *autonomy* to run my team as *I* see fit. Strip that away and the title is costume jewellery; as we'll see below, the circle does not close, because the middle link is missing.
+
+The same geometry repeats one floor up. I manage managers: I have delegated duties to them and given them *autonomy* to carry those duties out *as they see fit* &mdash; not as whim, as *mandate*. If I had not given them that room, their roles would be theatre too: authority printed on the card, none in the room where the trade-offs actually land.
+
+### Ownership
+
+When you have been given a task or duty and you've been provided enough control over it so that you can perform it autonomously, you have *ownership* of it. On an abstract level, it's difficult to define ownership, but it's not that complicated.
+
+In Greek popular memory, the emotional template for this is cinematic and a little unhinged &mdash; which is why it stuck. In Pantelis Voulgaris's *[Όλα είναι δρόμος](https://el.wikipedia.org/wiki/%CE%8C%CE%BB%CE%B1_%CE%B5%CE%AF%CE%BD%CE%B1%CE%B9_%CE%B4%CF%81%CF%8C%CE%BC%CE%BF%CF%82)* (*It's a Long Road*, 1998), the **Vietnam** part follows Makis Tsetsenglou into a [skiladiko](https://en.wikipedia.org/wiki/Skiladiko) &mdash; one of those fraying night joints at the edge of a town, all smoke, bouzouki, and bruised pride.
+
+Drunk and loud, he asks what the *magazi* (venue) would cost; the owner names a band in the **twenty-to-twenty-five million drachmas** range; Μάκης offers **thirty million** on the spot. When the owner asks whether he means to *operate* the place, Μάκης says he will **demolish** it. Absurd, cruel, funny: a cult scene that lodged in the culture. I borrow only the shell. The **venue** is the patch of road you actually hold. I am not handing you the deed to the whole highway; I am handing you the keys to *your* magazi.
+
+What I say to **anyone** I delegate to &mdash; engineer, lead, manager &mdash; compresses into this:
+
+> Take the keys for the venue and run it as you see fit. In the end, we'll do the math.
+
+*We'll do the math* is not a threat in my mouth; it is the honest half of the bargain. When the cycle turns &mdash; review season, or an incident with your name on the blast radius &mdash; we reconcile outcomes with expectations: what held, what cracked, what we change next.
+
+Autonomy has **walls**: a backend lead does not get to annex infra strategy, rewrite org-wide cost rules, or swallow another team's mandate without the formal handrails that make that *legal* in a company, not merely *bold*. If you ran the venue **in good faith** and it still caught fire, we write a **post-mortem** and follow the smoke.
+
+Long story short: rules, sign-offs, and operating parameters are the **lease** on the building &mdash; they define what *your* magazi is. Inside that footprint, though, who is better placed to run the floor than you? Me?
+
+### Accountability
+
+*Accountability* is a fancier term for *responsibility*. Sticking with the **magazi** image from above, it sounds like this:
+
+1. You **can** act **inside the lease** you were handed. The organization pre-authorized a lane when it gave you the keys &mdash; you are not expected to ring the landlord for every price you chalk on the board, only when you are about to swing at a **load-bearing** wall: someone else's infra, org-wide cost, another team's mandate. That is not rogue autonomy; it is *authorized* judgement, with **your** name still on the door when the inspector walks in.
+2. You *have* **real** control &mdash; hands on the register, not commentary from a balcony. When the rush hits, you are the one in the room.
+3. It is your **duty** to **run** the place: openings, closings, restocking, the dull glue &mdash; the recurring heartbeat of *this* magazi. Not a single parcel of work you can drop on the pavement and forget.
+4. When you lock up and *we do the math*, you **take** the praise or wear the blame for **this** store's line on the ledger &mdash; not the whole strip, not a faceless *someone should have*, **you**.
+
+When you are given the necessary autonomy and you have assumed ownership of a task or a duty &mdash; you are ultimately accountable for the outcome.
+
+Why *accountability* instead of *responsibility*, then? Short answer: semantics &mdash; nothing fancier hiding behind the syllables.
+
+*Responsibility* can be used interchangeably both with *accountability* and with *duty*. Semantically, they are not the same: You have tasks &mdash; units of work that can be completed once-off &mdash; and duties &mdash; recurring units of work, process enforcement, etc. These are your *responsibilities*. You are *answerable* about those &mdash; their progress, their success, their failure, etc. &mdash; therefore, *accountable*.
+
+### Consequences
+
+Here's another misunderstood word: *consequence* is the outcome, or if you prefer, the effect of a cause. On the **magazi** floor, that is never a dead line in a textbook &mdash; it is whatever lands after you *lock up*. A good stretch: the till makes sense, the landlord's voice softens, maybe straight **praise**. A bad one: **scolding**, empty chairs, the weight you carry into the next shift.
+
+Without consequences nothing works. Why run the counter in good faith if *we never do the math* &mdash; if a packed night and a dead one both stamped the same invisible wage? Why be accountable when nothing **follows** from how you ran the room? A consequence of working is getting paid; can you imagine someone working without getting paid? And no, I am not talking about hobbyists, contributors to open source, volunteering, and the like. You do a job to make ends meet and have something to eat.
+
+The chain is only honest when it closes: *delegation* grants *autonomy*, *autonomy* makes *ownership* real, *ownership* makes *accountability* unavoidable, and *consequences* are what keep *accountability* from being a smoke screen &mdash; the moment the tally **bites**, so nobody can pretend the magazi was a dress rehearsal. Then the next handoff, the next release, the next dinner rotation; **another key** turns, and the loop starts clean.
+
+## What's a Post-Mortem
+
+If you are a police-procedural aficionado like I am, you already know what a *post-mortem* is in the literal sense. In our daily routines we dissect a block of code, a process, or an outcome to understand what happened. In engineering orgs, the written **post-mortem** is usually tied to **incidents**: **outages**, **production failures**, **security events**, and **near-misses** &mdash; moments when the system behaved in a way you did not expect or risk showed its teeth. The worst day qualifies, but so does the bullet that grazed you. When you want to squeeze more out of a win, teams often use a different ritual name (*retrospective*, launch review); the terse corporate thread that still says *post-mortem* means something happened to reliability, not a generic pat on the back.
+
+It usually begins with an email &mdash; short, cold, corporate: *Kindly compile a post-mortem for X by Y*.
+
+A post-mortem is a consequence that **not only** verifies the chain, but also leads to catharsis; much like a confession or therapy. It enables us to poke ourselves, a situation, a process, a chain of events, and relieve any burden we may have accumulated. It provides a lot of insight into the *what*, allows us to think *how* to improve something and improves &mdash; mainly psychological, but not only &mdash; *safety*, so that we are ready to take on the same actions, with better results next time.
+
+I jokingly tell my team, *your punishment for this, is to produce a post-mortem*. Part of that is just my sense of humour; part of it is how the word *consequence* lands in my head.
+
+In Greek, [συνέπεια](https://el.wiktionary.org/wiki/συνέπεια) is dictionary-neutral &mdash; among its senses is simply *result*, *outcome* &mdash; yet in live speech the plural *συνέπειες* often shows up in the same frames as English *consequences* in a warning: fallout, accountability, trouble, unless you explicitly steer it positive (for example *ευεργετικές συνέπειες*). Greek usage writing notes that reference works **disagree** on whether the word is strictly negative or polar; I'm not claiming a peer-reviewed law for the whole Balkans. I *am* saying that growing up in **south-eastern Europe** tuned my ear so *consequence* sits closer to *punishment* than to *bravo* &mdash; and that bleeds into how I tease the team.
+
+### Kick-off
+
+The first question that lands for the reader &mdash; and in my team, especially team leads &mdash; is *when* a post-mortem should be compiled. The answer is blunt: when something didn't go **as expected**, or did not meet certain **operational parameters**.
+
+Maybe a deployment went bad. A fix that broke something else. An update that caused issues. A change in a pipeline that was undocumented and caused frustration. An internal process not followed. The list could go on forever; with a little critical thinking you know when something is a quiet word with one person and when it needs a post-mortem &mdash; compiled, reviewed, approved &mdash; so concrete change follows and the same mistake is less likely to repeat. We will make new mistakes anyway; we'll **kick off** new post-mortems when we do.
+
+### The content
+
+There are many templates out there that assist in post-mortem creation. If you pick one, fine &mdash; keep the document itself simple.
+
+The post-mortem is not another tech-heavy document, and &mdash; at least for me &mdash; it needs to be understood by non-technical stakeholders, so that they are informed about the malfunction or the deviation, and they can contribute to the discussion and improvements.
+
+Start with **what**: a simple, very high-level explanation of **what** happened. *Executive summary* is the label that usually gets pasted on that block; the point is that a non-technical stakeholder can speed-read it and still have a true picture of the situation if someone corners them with a question or two.
+
+Proceed with **when**: Give an analytical timeline going as far back in time as necessary. Explain the build-up of the situation and the decisions or driving factors that led us to that point.
+
+Focus on **how**: Explain the intricacies of the failure (or success, if you are writing a post-mortem for it). Give details so that no assumptions can be made. Don't just write them, but re-read them and question them. If you want to persuade others, you first need to persuade yourself.
+
+Put the **blame** on the system: Rarely, if ever, is a single person solely at fault for an *internal* failure &mdash; and when one person did something malicious, HR and policy handle the person; the post-mortem still asks what *systems* allowed harm. After a security breach, serious response still **grounds itself in facts about the adversary and the intrusion**: attribution where it is knowable, **threat intelligence**, **IOCs**, **TTPs**, timelines, and evidence &mdash; otherwise you are storytelling while the same gap welcomes a repeat visit. None of that contradicts blameless learning: the learning document should still obsess over what *we* failed to prevent, detect, or contain &mdash; controls, monitoring, segmentation, response playbooks, handoffs between humans. Scapegoating one engineer on a slide is the easy out; fixing the wiring is the job. Conducting a *blameless* review is one of the hardest things I've been asked to do: we naturally blame people because systems are built by people. But hear me out: If your code does not validate whether an authenticated user may access a resource, it's not one person's fault. Somebody reviewed that code, somebody tested it, somebody approved it. The system is problematic, not the output of `git blame`.
+
+Learn your **lesson(s)**: A post-mortem without admittance of lessons learned is an incomplete one. **The next two sentences are deliberate hyperbole &mdash; a stress test, not a logical theorem:** it's *almost* impossible that we botched a deployment and learned *literally* nothing; *almost* impossible that we fought a performance fire through investigation and remediation and took away *zero* new signal. If either were truly true, the process was hollow. It may be difficult, harsh even, to admit how little you still know, yet post-mortems also exist to repay any knowledge debt a team or an organization has. Use them.
+
+Propose **next steps**: Conclude with what needs to be done going forward so the same failure is less likely to recur. You need to place safeguards? Do so, but in an organized manner. You need to improve processes? Propose with justification. You need to close the knowledge gap, provide training, inform the team about something? Note it down. It's important that you know where you are at the time of writing the post-mortem and where you want to be going forward.
+
+### Reviewing
+
+Writing a post-mortem just for the sake of it makes no sense. A post-mortem is another artifact: it needs review &mdash; and that review is **editorial** as well as **factual**. You are checking whether the story is clear *and* whether the record matches what actually happened.
+
+I do not run this through a single gatekeeper. The review is done by the stakeholders who are interested and need to be informed: the engineering team first, and when the incident touched the edges of the product or customer experience, people from support, product, or elsewhere who must be able to explain what broke, how we responded, what we fixed, how long it took, and what we are doing so it is less likely next time. There is no prescribed reading order; the goal is engagement from the right people, not a routing slip.
+
+That openness collides with a habit we have as builders: we are trained to review **code**. We look for null checks, race conditions, naming. A post-mortem is tired prose written under pressure. Two conscientious reviewers can both miss a line that is wrong, or *technically* defensible but misleading, because neither is listening for narrative failure the way they listen for a bad condition. Sometimes it takes a more experienced eye &mdash; someone who has read enough of these to hear when the timeline does not support the summary, or when the lesson and the facts are not the same thing.
+
+Action items are where good intentions evaporate unless you **track** them. Every item needs an owner; whether you also commit to a hard date or to a priority band depends on severity, but *some* external handle matters &mdash; a ticket, a board, a recurring check-in, anything that lives outside the document. Without that, you have **nothing**: the room nods, the file is closed, nothing moves.
+
+The post-mortem earns its keep when something in the real world moves. Until then, it's paper.
+
+Paper without motion is just another illusion.
+
+---
+
+## Security Is Not a Feature. It's the Foundation for Apps
+
+URL: https://mistericy.github.io/blog/security-is-not-a-feature-its-the-floor/
+Published: 2026-03-23
+Updated: 2026-03-24
+Category: Security
+Tags: Security, Broken Access Control, OWASP, Authorization, Authentication, Laravel, IDOR, Web Application Security, Secure by Design, Software Engineering, CWE
+
+Frontend checks without backend authorization spell broken access control—OWASP A01, IDOR, CWEs, rate limits, and why security is the floor.
+
+It is another usual day at work &mdash; not a Friday, not a Monday &mdash; and there's no deadline looming over your head. Everything goes smoothly, and even worse: Everything's on track and some of your deliverables have been delivered earlier than their original ETAs. What else could a developer ask for?
+
+And yet, something's troubling you. You've been looking at a [Blade Template](https://laravel.com/docs/13.x/blade) and something feels off. Way off. In fact, you cannot understand why you need all these permission-related checks on frontend. You check whether the user has permission to upload files, to download files, to share files, to give one-time access links, the works.
+
+## The checks are lying to you
+
+Truth be told, this file repository SaaS application you've been maintaining is kind of old, based on an older version of Laravel &mdash; there's not enough time for updates; features need to be shipped &mdash; and the code is not the cleanest it can be. You shipped the MVP, it went well and a feature rush started; a frenzy that hasn't settled yet.
+
+You shift around your notes: A git blame here, a check on the development documentation there, some searching through integration and E2E tests. And something ominous starts humming in the background: It's the realization that *nothing is really what it seems*.
+
+### Trust, but verify
+
+It has probably been a long time since you've built an affectionate relationship of trust and dependence with your codebase. You trust that it works the way it has been designed and that it handles every absurd scenario you and your colleagues could have thought of. Yet, that morning, you are so deeply troubled with the immense amount of security checking on your frontend that you'll have to do what you've been afraid of since your eyes met the first `@if` &mdash; have a look at the backend.
+
+Paradoxically, the controller is quite clean. It follows best practices. It checks for the existence of a user session (*is the user logged in?*) and Laravel &mdash; or you, if you wired it yourself &mdash; has taken care of Cross-Site Request Forgery (CSRF; *has the user been tricked into doing something other than what they wanted from a malicious actor?*). Yet, one thing that stands out is the one that matters the most:
+
+At no point in your controllers or the middleware they use is there a check regarding the most fundamental principle you've built your service on: *Does the user have access to perform a particular action on the requested file?*
+
+> A wild Broken Access Control vulnerability appears!
+
+If this hasn't been clear until now, today we are going to talk about security. We'll be talking a lot so grab your favorite beverage, get yourself comfortable, stay a while and listen...
+
+## You can but, *are you supposed to*?
+
+Before talking about BAC, let's explain what *Access Control* is and does.
+
+> Access control enforces policy such that users cannot act outside of their intended permissions. Failures typically lead to unauthorized information disclosure, modification, or destruction of all data or performing a business function outside the user's limits.
+>
+> OWASP Top10 [A01 Broken Access Control](https://owasp.org/Top10/2021/A01_2021-Broken_Access_Control/)
+
+OWASP gives pretty detailed information about some common vulnerabilities. So, as you look at your imaginary SaaS's code, you can quickly understand that while we've imposed strict Access Control checks on the frontend layer, the backend makes no mention of checks. Which is bad. Very bad.
+
+As usual, in such situations, shit can hit the fan faster than anyone can anticipate. You start to wonder *has it been exploited?*.
+
+That's an answer you can't really give at the moment; it requires a careful review of your logs, access patterns, the likes. You've got to decide what's more important and set your priorities straight: Damage control vs reporting. Damage control always wins.
+
+Now, before even patching this, you'll have to understand exactly what its impact is. As usual in such situations, you grab a colleague of yours and start [red-teaming](https://en.wikipedia.org/wiki/Red_team) the application. You log in as user A, you try to access a file from user B to no avail: The frontend enforces your security policy. However, when you request, via an API call, a file that belongs to user B &mdash; one you have no permission to view &mdash; it gets immediately downloaded to your local development environment.
+
+### Authentication versus Authorization
+
+There's a major difference between those two words, their meaning and what they stand for. On one hand, **authentication** is the process of proving something to be true: Your identity in our context. When you are using the correct password for a username, you are either granted access or denied: You are **authenticated** or you get a `401`.
+
+**Authorization**, on the other hand, is the action of authorizing (giving permission) someone to do something. So when you try to download a file, you'll either get it or you'll get a `403`.
+
+In our case, the frontend contains **all** necessary controls to disallow access to **unauthorized** actors; which is good up to a point. However, the backend cares **only about authentication**.
+
+I'd suggest you reread MDN on [401](https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Status/401) and [403](https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Status/403); the distinction is there and is easily understandable:
+
+> A `401 Unauthorized` is similar to the `403 Forbidden` response, **except** that a 403 is returned when a request **contains valid credentials**, but the client **does not have permissions** to perform a certain action.
+
+In our case, a check like the following (given in pseudocode) would suffice:
+
+```php
+if ($user->canAccess($file) === false) {
+    throw new ForbiddenException("You are not allowed to view this file");
+}
+```
+
+### Let's start with *Why?*
+
+While what I am about to write can be shredded into pieces, **we have been falling into our own traps**: A common mistake is that we are so blindly enforcing the *DRY* principle that we tend not to properly enforce access controls. Another mistake is failing to separate concerns; for example, each route has its own authorization logic, rather than grouping authorization logic in middleware. A missed non-functional requirement here, a case not covered by tests there: You know the drill.
+
+But the most wicked mistake of all is lacking a **security-first mindset**. Security is not another *feature*. Security is not *nice-to-have*. Security isn't even just a *non-functional requirement*. It's a fundamental principle we need to be disciplined in, so that both we, as developers, and the organizations and the projects that we are working on, are *secure by design*.
+
+Even if you are following a very strict procedure in your Software Development Lifecycle (SDLC), mistakes such as this are *bound* to happen, if you don't follow a *security-first, deny-by-default* approach. In our example SaaS here, it is obvious that you, as a developer, didn't lack the **skills** a developer should have with regards to security. However, the **mindset** is a very different thing.
+
+### Always Assume Breach
+
+While I've distanced myself from code the last few months, I still do code reviews; albeit at a limited capacity. What I've been actively looking at are three domains where I truly have both the experience and the expertise to give feedback on:
+
+1. **Architecture**: Will the code stand the tests of time?
+2. **Performance**: What happens when the Horde of Users hit us hard?
+3. **Security**: Can I break it? What's the worst case scenario? What we've got to lose?
+
+Undoubtedly, the first two domains are out of context, however the third is what we are talking about today.
+
+When I was writing code, and when I review code nowadays, I **assume there's a breach**. There's a hole in the system that I can exploit. There's something that will allow me to utterly devastate the system.
+
+You'd ask, *can you test all scenarios?*
+
+Of course not. Neither am I a security expert, a penetration tester, or a bounty hunter, nor have I ever wanted to pursue such a path. But I'm conscious about my code, my choices and my feedback: I have a *security-first mindset* and always try to teach a thing or two to newer colleagues.
+
+In our example, the Broken Access Control led to access to files from **unauthorized** users. Imagine if these files contained PII or, even worse, health records. What if then?
+
+No matter the industry you are working in, no matter the application you develop, no matter the framework, the same basic principles apply:
+
+1. Follow the **Least Privilege Principle**: Never give more privileges to a user than the ones that are truly required to do their job.
+2. **Deny Access By Default**: No matter the case, the error, the situation, return a `403 Forbidden` and don't leak **any** sensitive detail to the client; keep the real state on the server.
+3. **Assume Breach**: Work under the belief that the system you are working on is already breached, and try to red-team and mitigate any issues before they reach production.
+
+### Assigning CWEs and Patching
+
+You have a reproduction. You have a story you can tell in plain language: *authenticated user, wrong file, download succeeds anyway*. What you do *not* yet have is something that survives handoff — to another engineer, to a release note, to a postmortem, to a tool that only speaks in taxonomies. The gap between *I know what broke* and *we can systematically fix this class of mistake* is where good teams stop improvising and start borrowing language the industry has already agreed on.
+
+That language is [CWE](https://cwe.mitre.org/) — Common Weakness Enumeration. A CWE is not a medal and not a verdict; it is a **label** for a *kind* of mistake, narrow enough to be actionable, broad enough to recur. When you assign one, you are doing three things at once: you force yourself to describe the failure mechanism without hiding behind euphemisms, you plug the issue into the same map scanners, auditors, and frameworks already use (including how it relates to entries like OWASP Top 10), and you open the door to **remediation guidance** that is written against weakness types, not against your feelings that morning.
+
+Don't get me wrong — picking the wrong CWE is worse than admitting *I'm not sure yet*. The taxonomy rewards honesty. Parent/child relationships exist precisely because real incidents are messy. What matters is that you converge: *this is missing enforcement at the trust boundary*, *this is authorization versus authentication confusion*, *this is object ownership in a multi-tenant graph*. Once the label sticks, patching stops being a heroic one-off and becomes a **pattern**: enforce policy where the decision is authoritative (for a web stack, that is almost always the server), deny by default, cover the negative paths in tests, and document the invariant so the next feature rush does not carve a new hole beside the old one.
+
+In the file-repository scenario we've been walking through, the failure is not merely *forgot an `if`* — it is that the system never properly reconciles *who may act on which resource*. That is [CWE-282: Improper Ownership Management](https://cwe.mitre.org/data/definitions/282.html) territory: the boundary between *this file exists* and *this session may touch it* was never made real on the backend. MITRE treats 282 as a parent class; for a controller that never evaluates policy at all, many incident write-ups map the same story to [CWE-862: Missing Authorization](https://cwe.mitre.org/data/definitions/862.html) — pick the narrowest label that matches your evidence, and refine as you learn. Your patch is the line that makes that boundary real — authorization as code, not as UI theatre — and your verification is the red-team script turning from *success* to *403*.
+
+Since we've talked about CWE-282, let's move on to a more exciting case, shall we?
+
+## When the Key is the Next Integer
+
+Rarely does a Broken Access Control vulnerability travel alone in a product. Usually, due to insecure design and erroneous assumptions, when one is discovered &mdash; especially in cases such as the one we've been discussing &mdash; another is bound to exist. More often than not, patching one vulnerability may inadvertently patch another one &mdash; and that's why we need proper penetration testing: If the already fixed vulnerability resurfaces in a regression, everything that was coming with it, will return.
+
+Let's go back to our scenario, to the SaaS that handles user files. Each file is uniquely identified by an ID. What could be more common than using a `BIGINT` for storing the primary key and using it as the file's identifier?
+
+### Sequential IDs: 1, 2, 3, 4 — stairs, not secrets
+
+Now, then, don't get me wrong; I don't **imply** that sequential IDs are bad: For starters they don't occupy much space on disk &mdash; just eight bytes &mdash; and they can be used for sorting the table in ascending or descending order when they are combined with `AUTO_INCREMENT`. They're a great tool, and that's why I **state** that they are **not** inherently bad.
+
+So far, so reasonable &mdash; until you remember what our broken SaaS is actually missing. Let's go back to our example: An *authenticated* but *not authorized* user could download **any file** from the system. Thus they could start **enumerating** them at `1` and increasing this counter indefinitely. They'd pretty soon have an entire copy of the files you are *so securely* storing for your users.
+
+Let's say hello to our new friend [CWE-639: Authorization Bypass Through User-Controlled Key](https://cwe.mitre.org/data/definitions/639.html).
+
+### Insecure Direct Object Reference (IDOR)
+
+Now we are getting serious: Any *authenticated* user has, virtually, unlimited access to **ALL** user files stored in the application. The application does not perform any check with regards to the user being **authorized** to view a file **plus** the files are linked to sequential IDs, which...
+
+Ah, let's see a simple example here:
+
+```shell
+#!/bin/bash
+
+FILE_ID="${1:-1}"
+
+while true; do
+    DOWNLOAD_URL="https://example.com/files/${FILE_ID}"
+    curl -b "cookie-data" -H "x-csrf-token: your-token" -L -OJ "$DOWNLOAD_URL"
+    FILE_ID=$((FILE_ID + 1))
+done
+```
+
+Do you remember when I told you that *shit can hit the fan, faster than anyone can anticipate*? If you think that shit has really hit the fan, wait until I pull another ace from my sleeve. Just... not quite yet.
+
+### YEAH, BUT, I NEED...
+
+There are alternative approaches you should be aware of. In the same fashion you don't use `md5` any more for password hashing &mdash; I mean, I really hope you don't. Sequential integers are not wrong **when** authorization is bulletproof &mdash; but as **exposed** identifiers they make enumeration cheap the moment policy slips. You can switch to [ulid](https://github.com/ulid/spec) which:
+
+- Is lexicographically sortable and allows you to easily perform an `ORDER BY id DESC`
+- Includes 80 bits of randomness, which makes blind **enumeration** of valid IDs much harder than with a sequential counter. That is **defense in depth**, not a substitute for server-side authorization: if the backend still does not enforce *may this session touch this object?*, IDOR and broken access control remain.
+
+However, next to an 8-byte `BIGINT` scalar, a canonical ULID string is 26 ASCII characters — **18 bytes longer** in that representation. (If you store the 128-bit value as binary, a ULID is 16 bytes.) Which may pose a problem, **if you still live in the 90s**.
+
+Jokes aside, the only downside I've noticed, is when I have to perform a deep dive into a database, where I've got to paste long values, which I cannot check with a glance of my eyes &mdash; especially when the queries get more complex, it is painful.
+
+Still, **fix authorization first** — opaque IDs do not close a hole the server never checks. Once policy is enforced correctly, prefer non-guessable identifiers (ULIDs or similar) so enumeration does not make a bad design trivial to exploit.
+
+Basically, go for anything other than trivially sequential public keys when you want that extra friction — **after** access control is real on the backend.
+
+## The "Uh-oh" Moment
+
+It's almost 4PM and you haven't even touched your coffee &mdash; the situation is much worse than you've anticipated; even worse than you could possibly imagine. So, you are pen-testing this and you notice something strange: No matter how fast the bash script from above runs, the files are downloaded. No throttling, no crankiness from the servers' side, no nothing. The occasional CPU alarm here and there, but nothing that's not a part of the daily, alert fatigue routine.
+
+So, you think to yourself: *What if I don't download one file after the other, but I get them in batches of 100?*
+
+That's a very, very fine decision, a very wise one, because it fills your hard drive in a matter of seconds. What if a true attacker, a more sophisticated one than you, could just dump the files in an S3 bucket where they have virtually unlimited space, prior to allowing themselves to sift through them and find what they want, need or just mess around?
+
+It's high time that we talk about rate-limiting.
+
+### No throttle
+
+Physics will tell you that you are not allowed to indefinitely accelerate; as you approach `c` the energy you need to overcome it is infinite. Same thing happens with computers; they have their limitations when it comes to disk and network throughput &mdash; and they, as well, are limited by the speed of light. But let's &mdash; for the sake of the argument &mdash; assume ideal conditions:
+
+A sophisticated attacker &mdash; not the usual middle-school script kiddie &mdash; has absurd capacities in terms of network speed and disk storage: A 100 GBps connection and 2 PB of disk storage, just because they can.
+
+Assuming that our system holds files in the order of some hundreds of terabytes, the attacker will need **less than a day** to dump our entire operation, if no throttling is applied at any level. Which can be catastrophic.
+
+### No observability
+
+While I cannot draw conclusions from mere assumptions, it is more likely than not that there isn't a robust observability mechanism in place. To rationalize my chain of thought here, and I hope that we can agree on this, *authorization* checks in the backend are cheaper (in terms of development effort) than implementing a *rate-limiting mechanism*, and the mechanism itself is way cheaper than building a highly sophisticated *observability system*, where you'll have an alert when it notices that there's an influx of requests from a single IP that can trigger a DoS warning or similar.
+
+Observability, by itself, is not a *protection layer* &mdash; it is a *detection one*. How would you know when something has gone terribly wrong; for example, you are suffering an outage due to a Distributed Denial of Service attack? Lack of observability is the same as being blind; you know that something's there, but you cannot see it. And to an extent, you are not able to tell **what** it is.
+
+### No usable trail
+
+When you can't reconstruct a situation, you cannot fundamentally answer **what**, **when**, **how**, **for how long**, **how fast** &mdash; all these questions are equally important when you try to assess the damage an attacker dealt to your application. While it's nice to talk about writing code *security-first*, our developers being *security-aware*, and our architects *producing* *secure-by-design* specs, security is not a **magic** thing, not a **holy grail**. It's an amalgam of the things we do in our daily routines, the culmination of our failures and the sum of all the lessons we've learned on our paths.
+
+An audit trail, proper logging and monitoring aren't *nice to have* &mdash; however, since I am a pragmatist, I'll say that there's a point in time when all these transform from soft, nice-to-have, things, to absolutely required tools in your belt.
+
+### "We're not interesting"
+
+Maybe you aren't. Maybe you won't be targeted. Maybe you're small enough. Maybe you'll flop. Nobody can tell.
+
+However, your customers **may be interesting** for attackers. Your data, for reasons beyond the scope of this post **may be** targeted. Tomorrow you **will not** be small. You **may** reach S&P 500 one day. Nobody can tell.
+
+The thought that you **may** not be the target of the next attack, malicious or not, is not pragmatism but **complacency**: You have a belief that may have applied in the past, but five years into the market with some hundreds or thousands of customers, you **may also be** a high-value **target**.
+
+### Interaction frequency needs to be checked
+
+[CWE-799](https://cwe.mitre.org/data/definitions/799.html) talks about this exact scenario: An actor allowed to perform actions more frequently than expected. In our case, where we have a File Service SaaS, why would someone require to download some thousands of files, in a very short amount of time? And moreover, how would a rate limiting mechanism constrain such an actor?
+
+Rate-limiting should not only be imposed for security but for performance as well. Having someone *spamming* your APIs &mdash; literally abusing them &mdash; can cause issues to the infrastructure, your bill and potentially other customers, if you are in a multi-tenant system, such as the fictional system we are working on here.
+
+Go easy on it, implement observability, see how many [429](https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Status/429) responses you return. It would take its time but in the end, you'll have some more peace of mind &mdash; as important as a securely designed system.
+
+## Security's not on the roadmap
+
+Somewhere in a planning session, security earns a line on a slide &mdash; *Q3, hardening*, *after launch, backlog*, *nice-to-have when the core is stable*. As if incidents respect your quarter boundaries. As if *non-functional* were a polite synonym for *optional when we're busy*.
+
+Don't get me wrong: roadmaps coordinate people and time. They don't grant immunity. Security is not the feature you ship when the *fun* features are done; it is part of what makes the product *legitimate* in the first place. The same instinct that keeps you from deferring *the database* to a future sprint is the one that should treat assurance as structure, not garnish.
+
+What I have often seen under-taught in universities and bootcamps — your mileage will vary by program and region — is what the job now demands every day: **secure-by-design** &mdash; choices that still make sense when the diagram is outdated; **deny-by-default** &mdash; the closed door is the normal state until a rule opens it; **assume breach** &mdash; you build as if someone is already past the perimeter, because one day they might be. None of that arrives as a single dependency you add on Tuesday. It is a mindset you rehearse until it feels as obvious as running the tests before you merge.
+
+After time, what people fight over is often *information*: credentials, health records, strategy, the quiet metadata that maps who talks to whom. If you sell *trust*, *reliability*, *enterprise-ready*, you are already selling security &mdash; not as a slogan, but as the promise that someone else's data will not become someone else's lesson. Skimping there is not efficiency; it is arguing with your own pitch.
+
+Security is non-negotiable in the same way the integrity of your build is: not a checkbox for the auditor, not a paragraph copied into the RFP, but one of the foundations modern software stands on. Treat it as *truly* important &mdash; not another line item to tick and forget. Schedule it, review it, fight for it in design meetings when the room wants to move on. When you do, the roadmap stops being the place where security *appears* &mdash; it becomes the ledger of work you already assumed from day one.
+
+> Not something you announce. Something you always uphold.
+
+---
+
+## Whether You CAN Is Learnable. The Issue Is Whether You WANT To.
+
+URL: https://mistericy.github.io/blog/whether-you-can-is-learnable-the-issue-is-whether-you-want-to/
+Published: 2026-03-10
+Updated: 2026-03-10
+Category: People & Teams
+Tags: management, leadership, people management, career development, IC track, individual contributor, no-shame exit, can vs want, management trial, leadership transition
+
+Whether you can is learnable; the issue is whether you want to. On why forcing people into management is a failure of leadership, and why the no-shame exit ramp is the actual design.
+
+We left the office, bought some coffee, and started walking down Stadiou from Omonia toward Syntagma. You could say it was an awkward 1-on-1—away from the office, meeting rooms, notes and laptops. We were talking about management. What makes a good manager. What makes a bad one. Sixty-six minutes in, my colleague had said it: *I feel I can't do it at all*. He was talking about people management—the trial we were talking about, the responsibilities we had scoped, the boundaries we'd set, the ramp we had built. This wasn't impostor syndrome, some abstract version of it. He was experiencing the concrete fear that he wasn't cut out for it; haven't we all gone down this road when we took our first steps.
+
+On the walk I reframed it. Whether you **can** is learnable. The issue is whether you **want** to.
+
+I've been doing this for quite some time—management, in various positions and capacities, industries, companies. That reframe is what I've learned. It's the seed of this post. It's what I've spent years watching. 
+
+Stay a while and listen.
+
+## The Same Conversation
+
+The same conversation has played out in different rooms, different companies, different faces, different times. I've seen people who are **extremely** strong technically get pushed toward leadership—and fail catastrophically. Not because they couldn't learn the skills, but because we tell them that leadership is the only way to go above and beyond. The raises, the promotions, the power, the recognition. We present management and leadership as an evolutionary trait; if you don't adapt, you'll stay on the front lines forever. A senior engineer with a regular paycheck, having no effect on the organisation—you, your tasks, and a constant sprint to deliver the new feature, the optimisation, the fix to a regression. 
+
+Thus we model it. We run the tryout. We assume the only thing between them and the role is **confidence**, or **role clarity**, or **specs**, or **breadth of scope**.
+
+We treat *I don't think I can* and *I'm not sure I want to* as the same problem. They **aren't**.
+
+**Can** is capacity. **Want** is desire.
+
+You can train capacity. You don't get to train desire into someone who doesn't have it—it cannot happen. You shouldn't try. We've tried. We've failed in the past.
+
+The **no-shame exit ramp** isn't a consolation prize. It's the actual design that works for everyone. When you pair it with clear delegation of intent and authority, people can step back without shame.
+
+## I Didn't Learn That From a Book
+
+I've held various positions in various industries and I'm proud that I've been a factory worker, carrying euro-pallets in warehouses, gathering grapes, tobacco and olives when I had the need to. The dynamics are the same whether you're working a blue-collar or a white-collar job. If the one who leads the crew is inherently incompetent—lack of soft skills is incompetency—the crew will become as incompetent as the one that leads them. There's a brutal historical example: after the Battle of Kleidion in 1014, the Byzantine emperor Basil II had thousands of Bulgarian prisoners blinded, but left one eye in one man out of every hundred so that he could lead the ninety-nine blind back to their tsar. The one-eyed leading the blind. When the leader is barely fit for the role, the whole column follows at that level.
+
+I've seen the senior who went manager because it was the only way to get a raise, spent two years and came to understand that their tech skills had atrophied, and went back because he didn't like it. I've seen the lead who said *yes* to the *title* and no to the *work*—everyone could feel the no. I've seen the ones who left a company rather than say *I don't want this* out loud, because the only alternative on offer was *stay IC and watch your ceiling drop*. The ones who stayed often became the managers everyone complained about. Tenure must not guarantee leadership. Tenure measures time in seat, not desire to lead and not fitness for the job. When we promote because someone has been there longest, we're not selecting for capability—we're selecting for survival. The result is the one-eyed leading the blind, and the crew becomes as incompetent as the one at the front. If the only reason someone is in the role is that they outlasted everyone else, the system is broken.
+
+In every case, the system had one right answer: Step up. You know what?
+
+The system was wrong. Both outcomes are on the system.
+
+### The Trial We Designed
+
+So when my colleague and I designed his trial, we baked the pivot in from day one. Not *try this and we'll see*—he already held the position, but in a limited capacity. We said: try it properly, and if it doesn't fit, we'll **adapt the work to the person**, not the person to the work. The exit isn't failure. The exit is one of the two valid outcomes. No performance review penalty, no PIPs, no narrative that he **couldn't do it**. We ran the experiment; that was the result.
+
+What kind of manager would I be if I didn't put people where they can succeed and step back when the path isn't for them?
+
+## Three Weeks In
+
+Three weeks in, the data is coming in. He's catching PRs, calling out problematic behaviours, taking decisions in his domain—his own to take—without having to run them by me. I could write this as a victory lap—*see, the trial works*—but I ain't. The trial might not work. The point isn't the outcome. We're doing this without pretending it will work. Success, in this case, isn't outcome-oriented—it's the value we obtain from exploring another domain, the leadership and management one. We design for **success**, we work towards **success**, no matter the actual outcome.
+
+## My First Steps
+
+That reframe didn't come from a playbook. It came from my first steps—and from the moment I understood that **can** and **want** are not the same thing.
+
+The first time I took a managerial role it was out of sheer need. My manager went on maternal leave and there was no one to run the operation. We, the ICs, didn't think we needed a lead; we thought it was business as usual. Then higher management called me and said I was the interim manager so fuck-ups would stop. Was I the one with the longest tenure? Sure. I also had a deep understanding of the operation and my way with people—a couple of years on the front lines of customer service and support. They thought I was cut out for the job. I said let's give it a try; it was supposed to be temporary.
+
+It was weird every day. Managing people who had been colleagues—same trenches, same trauma, beers and shop talk. It was painful to show them their mistakes and try to help them grow. You'd ask: wouldn't you already be doing that, as the most senior of the crew? The truth is, ten years later with a clearer picture, I was already doing it. I was the X/O; I didn't get promoted to C/O but I was the acting one. Did everything go according to plan? No—and that wasn't in the package. I was there to lead, not manage. And I led. *Sailing on and on and north across the sea.*
+
+When I switched jobs I went back to IC. Back then I thought: screw this, I'll go for a junior position and allow myself to relax. That was the plan; between us, I still think about it from time to time. There was a vacancy and I offered to fill the gap—no title, no raise, no shenanigans. My motto was to set myself up for obsolescence. I was there not only to lead or manage but to help more junior members grow, make myself obsolete, let them take on my responsibilities so I could move to the next challenge. It took time. It was painful. And again I was there, saying I'm not cut out for it, I don't want to do it—people have grown, they can take it from here. Back to IC.
+
+Back to management a year later. Stronger, more determined. I'd had enough of idle reverie; I decided to take my life in my own hands. Am I a good engineer? Most probably. Is my team composed of engineers who are better than me? That's for sure. So what do I have that makes me cut out for this role? The soft skills that only come through experience, pain, mistakes, understanding. You stop optimising for CPU cycles and memory and start optimising for people's output. You still do reviews—architectural, security, business. You still write code from time to time, but only when something genuinely needs you or to fill a forty-five-minute gap between demanding meetings. You prototype so you don't get left behind and turn into another *I don't understand this, can't we use an iframe?*
+
+I had a talk with my manager the other day. I told him straight: have you digested that neither you nor I are developers anymore? It hurts, but it's the truth. We're not developers. We're engineering managers—we manage the people who produce the code, we help them grow, we listen, we understand their problems, we give them solutions, we escalate, we protect. I've been the guardian angel of a crew of twelve strong for the past two months; soon I'll be out on paternity leave, expecting my second. I'm seeding what needs to be reaped. A proper culture, empowerment, the ability to speak up, to push back, to criticise the higher ups. All of that can be taught by a book, but it has to be **experienced**. Joining a call with a mid-level engineer and demanding that they challenge you and push back whenever necessary—I do that. I may be the captain of the ship, but I ain't infallible. I've got a ton to learn from my team, just as they have from me.
+
+### Don't Be a Hypocrite
+
+Don't be a hypocrite. You're another person in a leadership position. It's a war out there and you need your crew to win; if you're John Rambo, tough luck—this is the twenty-first century. Teach them that **can** and **want** are not the same. Teach them to challenge you. Give them space and time to grow. Perform the course corrections that are absolutely necessary. Seed the culture they'll thrive in, not the one that suits you. And if you don't go to therapy, it's high time you did. If not therapy, talk to others in the same position. Build a support network. People are strange; you'll need support, you'll need to talk, you'll need to vent. You'll build trust by listening.
+
+### The First Day in the Army
+
+The first day in leadership is like the first day in the army. The boots kill your legs, the food is awful, the bed is uncomfortable and there's an unexplained smell in the barracks. You'll make it. And if you don't—make sure the exit plan is something completely acceptable and promoted. If it isn't, it's not you. It's the culture.
+
+There's a difference between knowing the path and walking the path—Morpheus to Neo, in the Matrix. We're walking it.
+
+---
+
+## Until It Bleeds: Hive Mind for Complex Features
+
+URL: https://mistericy.github.io/blog/until-it-bleeds-hive-mind-programming/
+Published: 2025-10-21
+Updated: 2025-10-21
+Category: People & Teams
+Tags: mob programming, team collaboration, software development, hive mind development, complex features, developer productivity, team dynamics, distributed cognition, parallel programming, collective intelligence
+
+Stop bleeding alone on complex features. Discover how hive mind programming transforms impossible mountains into walkable hills through distributed cognition and parallel development.
+
+There's this moment when you realize you've been banging your head against the same wall for weeks. Not days. *Weeks*. And the wall hasn't moved. Not even a crack. It's a fact that you *can't win this fight*.
+
+We'd been trying to modernize our storage architecture — migrating away from local disk to cloud-based solutions. Sounds simple, right? Well... so does *just deploy it to production*. On Friday afternoon. We all know how that goes.
+
+The problem wasn't the code. It wasn't the complexity of AWS S3, CloudFront, and the like, or the intricacies of distributed storage. The problem was that we'd been approaching it like *individual warriors*, each fighting our own isolated battles. 
+
+> Lone-wolf development had leeched our strength, and we mistook the weakness for progress.
+
+## The Solo Grind That Never Ends
+
+Picture this: Monday morning. Coffee in hand. Asana task loaded. `Migrate file storage to S3`. Heh, how hard could it be?
+
+*Monday afternoon*: Deeper rabbit hole than expected. Infrastructure concerns. Legacy code dependencies. Edge cases nobody documented.
+
+*Tuesday*: Different rabbit hole. Authentication issues. Permission models. *Why does this service need seventeen different policies?*
+
+*Wednesday*: Back to the first rabbit hole because Tuesday's "fix" broke Monday's progress.
+
+*Thursday*: Existential crisis. *Maybe I'm not cut out for this. Maybe I should have become a plumber. At least pipes don't have backward compatibility issues.*
+
+*Friday*: Productive procrastination. Answered emails. Updated documentation. Attended three meetings **about meetings**. Avoided the storage migration task like it had COVID.
+
+Maybe it sounds awfully familiar...
+
+This is the *solo development death spiral*. Complex features (the ones that touch multiple systems, require deep architectural understanding, and have tentacles reaching into every corner of your application) aren't designed for solo work. They're *distributed problems* that require **distributed thinking**.
+
+But, we keep trying to solo them anyway. Why? Because we've been conditioned to believe that great developers are *lone wolves*. That asking for help is weakness. That if you can't solve it alone, you're not senior enough.
+
+Complete and utter bullshit.
+
+When you're working alone on a complex feature, you're essentially context-switching between being the frontend developer, the backend developer, the DevOps engineer, the database architect, and the person who remembers why that weird edge case exists. 
+
+> Oh! Isn't that the thing we call a *full-stack engineer*?
+
+Even if you're more than a full-stack engineer — think of it as a principal generalist — even if you *can* wear all those hats and then some, you're wearing them **one at a time**. And every hat switch costs you cognitive load.
+
+The frustration compounds. The diminishing returns kick in. You start making trades: 
+
+- "I'll just hardcode this for now." 
+- "I'll refactor this later." 
+- "This technical debt is someone else's problem."
+
+And slowly, inevitably, you start bleeding. Energy. Motivation. Confidence. Time.
+
+## Assembling the Perfect Party
+
+In our case, the breakthrough came during a work trip. Not in some conference room with a whiteboard and sticky notes. Not during a formal planning session. Just a couple of developers in a car, traveling toward the head office, talking casually.
+
+--- 
+
+"What if we used this?"
+
+"Yeah, I was thinking of the same thing"
+
+"Ah, let's sync with the crew once we reach the office and work on it in unison"
+
+"LGTM!"
+
+---
+
+Revolutionary concept, right? *Work together*. On the same thing. At the same time.
+
+We drove to the office with something that was less than a vague idea. Not a detailed architectural document. Not a formal project specification. Just an idea and the energy to try something different.
+
+Within an hour, we had our crew assembled:
+
+- The Generalist - the one who could see the whole system
+- The Backend Guru - the one who actually knew where all the bodies were buried in our codebase
+- The Backend Prodigy - fresh perspective, the one that fixes all the issues, and pushes faster than their shadow
+- The DevOps Warrior - infrastructure focus, in process of ownership transfer and becoming the go-to person for CloudFrustration™.
+
+We annexed the space under the stairs. Not some fancy conference room with whiteboards and ergonomic chairs. A small couch, two armchairs, and the chaotic energy of four developers who'd decided to stop bleeding individually and start bleeding together.
+
+Four laptops. Four people. Seven and a half eyes. Forty fingers. Same problem, different expertise domains. 
+
+The rules were deceptively simple:
+
+- Make one thing work at a time, *without breaking the others*
+- No side conversations, *full parallel work*
+- *Chaos communication* - if you see something, say something, **immediately**
+- Hackathon energy, collective ownership, **hive mind**
+
+Let's see what happens when distributed thinking becomes hive mind thinking.
+
+## The Moment Everything Clicked
+
+The first twenty minutes were pure chaos; the problem by itself was chaotic and literally beyond the scope of this post. We had our requirements, we knew what were our goals, but the path to reaching them was as dark as any moonless night.
+
+Four laptops, four terminals, four different pieces of the same puzzle. The Backend Guru diving deep into the serving logic. The DevOps Warrior spinning up needed infrastructure so that we can work more efficiently. The Backend Prodigy implementing changes and pushing them. The Generalist orchestrating the chaos and ensuring the pieces would actually fit together.
+
+This wasn't traditional mob programming. No single driver, no keyboard rotation, no careful turn-taking. This was parallel mob programming. Distributed thinking accelerated to hive mind speeds.
+
+---
+
+"Uploading a file now, let's see"
+
+"Doesn't work"
+
+"Damn"
+
+"Switch to another approach"
+
+---
+
+Real-time coordination without formal coordination. The Backend Guru would shout out a problematic piece of code, and the DevOps Warrior would make a check on the infrastructure to validate that a change in the code needed (or not) changes in the infrastructure. The Backend Prodigy would change things, commit and push, and the Generalist would suggest an architectural solution that the Backend Guru could implement immediately.
+
+When the first content was successfully displayed in our screens, without ANY quirk, we didn't just celebrate individually. We lost our collective minds as a unit.
+
+> IT WORKS 🤬🤬🤬!
+
+Four laptops. Forty fingers. One working proof of concept.
+
+But here's the thing: the code we produced in those two hours wasn't just functional. It was *better* than what any of us would have written alone. Not because we were smarter together, but because we were thinking together.
+
+The Backend Guru's deep understanding of legacy systems, combined with the DevOps Warrior's infrastructure expertise, combined with the Backend Prodigy's commitment to success, combined with the Generalist's architectural oversight. Each person operating in their domain of expertise while maintaining awareness of the whole system.
+
+Hive mind development. Distributed cognition. Collective intelligence applied to code.
+
+The difference wasn't **just** psychological anymore. It was qualitative. The solution was more robust, more thoughtful, more complete than the sum of its individual contributions. 
+
+A much, much needed Proof of Concept which we should have done a long time ago.
+
+## Why Solo Development Bleeds You Dry
+
+Solo development on complex features is fundamentally **broken**. I've walked down that path a myriad times: Best-case scenario, an eternity later, you have something that (more-or-less) works, you deploy it, customers complain about a myriad bugs and shortcomings that you couldn't have imagined that will surface. Worst-case scenario? Feature is either sent to *development hell* or gets entirely *scrapped*. We've all been down that road as well.
+
+By having experienced both the best and the worst case scenarios, I can tell you that there was a time that I literally went to my manager and declared that *I would stop contributing to features* and, instead, focus on fixing bugs, performing optimizations, writing post-mortems and dissecting problems. Back then I was frustrated by being either a lone wolf on the hunt for a new feature, or a cog in a machine that would not synchronize perfectly and, thus, underperform. 
+
+It was not the context-switching, though that was real. Having to switch from frontend, to backend, to third-party services, to product requirements, back to backend, write a test, perform a refactoring, fix one thing and **break four others**. When you are working alone on a feature that spans multiple domains, you are constantly *switching between different mental models*. Databases. API Architecture. Infrastructure. Error handling. Security Considerations. Performance. User Experience. Each switch costs cognitive energy. Each switch takes its toll on your ability to deliver.
+
+But the real problem is deeper: To deliver a complex feature in time, you need parallel thinking, not sequential thinking. 
+
+When we were working in *hive mind mode*, each entity in the hive mind could focus entirely on their own domain, while knowing that other domains and concerns were being handled simultaneously by another entity of the very same mind. The Backend Guru could focus on the serving logic, the DevOps Warrior would verify the infrastructure, the Backend Prodigy could explore potential fixes, without worrying about architectural consistency. The Generalist was maintaining system-level coherence in real time. 
+
+When working alone, it is impossible to parallelize your cognitive abilities. You think about the application logic, then you *switch* to infrastructure, then you *switch* to error handling, then you *switch back* to the application logic. And all these without having the ability, in a background process, to maintain the coherence of the entire system in (near) real time.
+
+In contrast, when working in hive mind mode, the cognitive load is truly distributed; not just divided, **distributed**. Each node of the cluster is thinking deeply in their own domain, while maintaining shared context about the overall system.
+
+The emotional load changes too. When working alone, every obstacle is a personal challenge. Every failure reflects on your individual competence. Every breakthrough is a solo victory that nobody else fully understands and you've got nobody else to celebrate with.
+
+In a hive mind, obstacles become *collective puzzles* that can be solved by exploiting each member's strengths. Every failure becomes a shared learning opportunity. Breakthroughs are group celebrations, with high fives, hugs and smiles. Photo opportunities. Collective memories. War stories.
+
+--- 
+
+"The S3 permissions are utterly screwed".
+
+"What's the error?"
+
+"Access denied, what else? But the policy looks right.".
+
+"Let me check the OAC... It's right."
+
+"No, it's definitely not the OAC, it used to work with this exact same OAC."
+
+"Does the cache behavior pass the cookies to the origin?"
+
+"🤬"
+
+--- 
+
+An entire debugging session that would take an individual a couple of hours, was done in a couple of minutes. Not because the problem was simple; it really wasn't &mdash; it was the distribution of cognitive load on the team. One member asked a question, another threw an idea, the third one did the check, the fourth one verified that it worked. That was a shared victory, a reason to celebrate, a reason to fuel us work harder and deeper into fully unwinding the entire solution.
+
+> One brain, no matter how experienced, can't generate ideas at the same rate as four brains thinking in parallel about the same problem space.
+
+## Hive Mind Tricks
+
+For complex features that span multiple domains, you need hive mind programming. The more the merrier, but be aware that there are diminishing returns. So, before picking your fight, its is essential to gather your party. 
+
+### Setup for Chaos Coordination
+
+Proximity is crucial for building and strengthening team bonds. We were literally under the stairs, close enough to overhear each other's thoughts, close enough to glance at each other's screens, close enough to immediately share discoveries. Four laptops, not one shared screen. Each person in their own domain, on their own laptop, with their own toolchain, hotkeys and tricks. Parallel work streams that intersect and coordinate organically.
+
+The [Allen Curve](https://en.wikipedia.org/wiki/Allen_curve) demonstrates that communication frequency drops dramatically with physical distance. But there's more: physical proximity enables spontaneous interactions and, through physical touch like high-fives and celebratory gestures, increases oxytocin production, contributing to longer-term team bonding experiences.
+
+One would ask, *wouldn't this work in a remote environment*? It can, but primarily when the team already shares strong bonds. Physical proximity is preferred when we need to build or strengthen those bonds — once the bonds are strong enough, any paradigm (on-premise, hybrid, remote) can work effectively.
+
+### Role-Based Parallel Processing
+
+While each person owns a domain &mdash; **must** do so, **must** bear the ownership to be able to go all-in &mdash; everyone maintains awareness of the whole system. While each one focuses on their own domain, the communication between the party allows everyone to understand enough about each other's domain. This allows everyone to know when their code decisions have, for example, deployment implications. This leads to a specialized focus with generalist awareness and that *is* the missing background process we really need when developing complex features, the background process that *maintains coherence*.
+
+The less seasoned engineers aren't just learning from these experience &mdash; they are contributing specialized knowledge in their own areas, they come with fresher ideas, they gain system-level understanding through **osmosis**. More on **gaining experience through osmosis** in a future blog post.
+
+### Chaos Communication Protocols
+
+1. No **formal** communication structure.
+2. No **designated** facilitator
+3. No **careful** turn-taking
+4. Real-time ambient information sharing.
+
+Information flows naturally based on relevance, timing and need, not based on formal coordination protocols. When someone discovers something that affects someone else's work, they share it immediately. When someone needs information from another domain, they ask immediately. 
+
+The coordination overhead is minimal, because the hive mind is self-coordinated, continuously, at a low-level, rather than periodically at a high level.
+
+### Fail Fast (Idea Speed) Hive Mind
+
+In traditional development, failure has high switching costs. Even if you are accustomed to a *fail fast* scenario, you need to back out changes, reconsider alternatives, restart with a different strategy and maintain a system-level consistency.
+
+In hive mind mode, failure has low switching costs, because multiple approaches are being explored simultaneously and, at the same time, the hive mind ensures system-level consistency. Via parallel exploration the risk is distributed throughout the crew and because everyone is checking the others' work, the resilience of the system becomes a collective objective.
+
+### Continuous Integration at Human Scale
+
+The hive mind approach creates a natural **continuous integration** system between different work streams. When one makes a change that affects the API, the other immediately knows, because they are listening to the same ambient conversation. At that time they can evaluate if that works (CI passes) or raise their concerns to the group for discussion (CI fails). In any case, integration issues get caught and resolved immediately, not during some formal code review process, some hours or days later. The feedback loop is measured in minutes.
+
+And that's without needing a GitHub workflow for setting up a continuous integration pipeline; this is continuous integration between human cognitive processes. 
+
+## Does it scale?
+
+As previously mentioned, hive mind developing has its diminishing returns. We've tried it with four people, it could possibly work with more people, under specific circumstances. But, we need to understand that we have limited cognitive capacity, there are limitations in ingesting and processing information, especially when they come from domains that are different from the one we are specialized in and we need to have some understanding on them. 
+
+On larger groups there are two major issues: Cognitive overloading and communication breakdowns. And then there's [Brook's Law](https://en.wikipedia.org/wiki/Brooks%27s_law)
+
+So, no. It does not scale indefinately.
+
+It's also unsustainable to be in a hive mind mode for long periods of time. Both the mental, and the emotional toll on this mode are non-negligible. In such fast-paced, continuously evolving, filled with emotions sessions, it's very easy to burn out. 
+
+So, no. It does not scale indefinately.
+
+But, we've already discussed distributed thinking and distributed systems and *you know where I'm heading to*.
+
+It can be *parallelized*, but not in a fashion where different hive minds working of different aspects of a problem and having a sort-of connection between all of them.
+
+A hive mind approach is producing results fast, but not without its toll: You don't have the time to write tests, you don't have time to explore proper error handling, you don't have the time to focus on your domain's best practices. You have a problem to solve, you have to *hack and slash* throughout the jungles of uncharted territories, you have to cut all the corners. 
+
+Scaling is achieved via parallelization on another level: A team of selected warriors from each domain work in a hive mind in order to tackle a problem and discover solutions. These rough solutions, need to be sent for polishing by the respective teams, after the conclusion of a such session. One group works on charting the jungle of complexity and when they've discovered enough and settled on the specifics, they prepare the work for other teams. What needs to be done is now known, system-level consistency is guaranteed, architectural (and not only) decisions have been established. 
+
+While the hive mind continues on exploring the unexplored lands of Code, Infrastructure, Requirements and User Experience, their teams can focus on working on the explored areas without having to worry about communicating with each other. They know what to do, because their delegate in the hive mind knows what's all about.
+
+## The Human Element in an AI-Generated World
+
+Here's what AI can't replicate (at least for the time being): the magic of forty fingers working on the same problem simultaneously.
+
+AI can suggest code solutions. It can generate architecture diagrams. It can even identify potential issues in isolation. But as of 2025, AI can't participate in hive mind development because AI doesn't have the parallel processing capabilities of multiple human minds working in coordination. Even if you spin a myriad of orchestrators, agents and subagents, the technology isn't there yet. Plus it needs human review. 
+
+When the Backend Prodigy asked "Why don't we just do Y instead of X?", that wasn't just a technical suggestion. That was pattern recognition informed by their fresh perspective, social courage to challenge assumptions, and intuitive understanding of user impact. The combination of cognitive processes that led to that insight required human context that AI doesn't possess.
+
+The Generalist's ability to maintain architectural coherence while three other developers worked in parallel, required *spatial reasoning*, *social awareness*, and real-time *cognitive load balancing*. Those are distinctly human capabilities.
+
+The DevOps Warrior's infrastructure decisions were informed not just by technical requirements, but by understanding team capabilities, deployment constraints, and operational complexity. Context that exists in human relationships and organizational knowledge, not in code repositories.
+
+The Backend Guru's deep understanding of the legacy code came from months of debugging edge cases, handling production incidents, and making incremental improvements. Experiential knowledge that can't be distilled into training data... yet!
+
+AI augments individual developer productivity. But hive mind development is about collective intelligence that emerges from human coordination, human communication, and human collaboration.
+
+The junior developers' "simple" suggestions weren't just naive approaches that happened to work. They were insights generated by cognitive diversity - different experience bases, different problem-solving patterns, different risk assessments. The value wasn't in the individual suggestions, but in the collective evaluation and refinement of those suggestions by the whole hive mind.
+
+When we celebrated the successful S3 serving, we weren't just celebrating functional code. We were celebrating collective achievement. Shared ownership of both the struggle and the success. Psychological validation that complex problems can be solved through human coordination.
+
+That emotional amplification - the energy that comes from breakthrough moments shared with people who understand exactly why it's a breakthrough - that's irreplaceable. That's what makes sustainable team development possible.
+
+## Conclusion
+
+Take your most complex feature. The one that's been bleeding you dry for weeks. The one that spans multiple systems, requires deep architectural understanding, and has tentacles reaching into every corner of your application.
+
+Stop trying to solve it with sequential, single-threaded, solo development.
+
+Assemble your *hive mind*. Find your Generalist who can maintain system-level coherence. Find your domain expert who knows where the bodies are buried. Find your fresh perspectives who aren't yet convinced that the obvious solutions are impossible. Find your specialists who can work in parallel on different aspects of the same problem.
+
+Set up for *chaos coordination*. Proximity. Multiple laptops. Parallel work streams. Ambient communication. Collective ownership.
+
+Make *one thing work at a time*, without breaking the others. Let the cognitive load distribute naturally across different domains of expertise. Let the emotional load distribute across shared ownership and collective celebration.
+
+Hit it until it bleeds. Until the barriers break down and the sequential bottlenecks become parallel throughput. Until the individual struggle becomes collective intelligence.
+
+The solution isn't better individual heroics. It's better collective coordination.
+
+And when it works - when the proof of concept proves its concept and everyone's celebrating because **THE FUCK, IT WORKS** - remember that feeling. That's what hive mind development feels like. That's what distributed cognition feels like. That's what complex features feel like when you attack them with parallel human intelligence.
+
+Next time you're staring at a feature that's too big for one brain, remember: it's not supposed to fit in one brain. Some problems are designed for hive minds.
+
+Find your hive. Set up the chaos. Start coding. Until it bleeds. Together.
+
+---
+
+## Beat Procrastination, Frustration & Code Stagnation
+
+URL: https://mistericy.github.io/blog/overcoming-procrastination-frustration-code-stagnation/
+Published: 2025-10-07
+Category: People & Teams
+Tags: productive procrastination, developer productivity, software development, impostor syndrome, micro-tasks, task management, Eisenhower Matrix, focus techniques, time management, developer flow
+
+Discover practical strategies to overcome productive procrastination, developer frustration, and code stagnation. Learn the 30-minute rule, dopamine-driven task management, and the Eisenhower Matrix to break through productivity walls.
+
+> A badly documented API is worse than a completely undocumented API.
+
+There. I said it. When I'm working with undocumented stuff, I know I'll have to poke it until I get a result; even if that result is a `418 I'm a teapot`. But badly documented APIs? The ones where someone clearly *just closed their Jira ticket* **without giving a damn**? Those make me want to punch through my monitor.
+
+The only thing that kept me back last time? The *Minister of Finance* wouldn't approve the purchase of a new one... (*sigh*)
+
+So... I tried what the docs said. *Failed*. Read more. *Failed more*. Hacked some things here and there...
+
+(╯°□°)╯︵ ┻━┻
+
+Screw it, it's 3PM and I need a coffee. Brew a coffee. Scrolled through my emails. Made a mental note to answer one of them. Replied to some Asana comments. Back to the implementation. Threw a couple of `curl` requests to no avail. Sent a message to a colleague about an unrelated matter. Back to Asana. Back to `curl`.
+
+Oh, 🤬. I'll fix it tomorrow.
+
+Tomorrow never came.
+
+## The Anatomy of Productive Procrastination
+
+Here's the thing about productive procrastination: it's **worse than doomscrolling**. At least when you're scrolling throughout Reddit, you know you're procrastinating. You can see it. You can understand it. But *productive procrastination*? It gives you a sense of &laquo;*Hey! I do things*&raquo; or &laquo;*I am working*&raquo; or even &laquo;*I'm not procrastinating*&raquo;.
+
+ It keeps you away from your goals and priorities while letting you pretend you're being productive.
+
+ The Asana comments. The colleague messages. The email mental notes. All of it feels like work. All of **it is work**, technically. But it's not the work that **matters**.
+
+ When I'm frustrated by something (some examples are a badly documented API, a task that's extremely boring, a user story that makes no sense, a project that has no purpose) I do other things. And on those days when I'm feeling self-destructive? Just the feeling of it is enough to send me spiraling into productive procrastination.
+
+The triggers? As predictable as the fact that *it works on my machine*:
+
+- Badly documented APIs (or worse, APIs documented by someone juggling three remote jobs who needed to show progress on all of them before their 2 PM standup)
+- Soul-crushing, mind-mashing boring tasks that make me wonder why I didn't become a plumber &mdash; at least then I'd get to save the princess
+- User stories that read like they were written by a Soviet-era bureaucratic committee: five people involved, none of them understand the problem, all of them have to approve
+- And sometimes, just sometimes, the impostor syndrome whispering that *I'm not good enough anyway*, so **why you even bother bro?**
+
+## The Positive Feedback Loop (3.6 Roentgen, Not Great, Not Terrible)
+
+Let's talk about the self-destructive behavior, because pretending it doesn't exist won't make it go away.
+
+It's the combination of impostor syndrome &mdash; that thing [over half of us feel](https://arxiv.org/abs/2312.03966) but won't admit &mdash; in conjunction with an *I'm not good enough* mentality. It's a self-fulfilling prophecy in a positive feedback loop. The more frustrated you get, the more you believe you can't do it. The more you believe you can't do it, the more you procrastinate. The more you procrastinate, the more frustrated you get.
+
+Rinse. Repeat. Spiral.
+
+This is where the difference between 3PM and 3AM becomes crystal clear.
+
+At 3PM, with a ton of things running, cars passing by, neighbors screaming, my first-born crying that she wants to watch some Peppa Pig &mdash; IT'S A NIGHTMARE. There are deadlines, meetings, messages, interruptions. The frustration compounds. If it doesn't work in 10 minutes, I can skip to the next important thing. Procrastinating the one that usually matters.
+
+At 3AM? When the baby wakes me up for a reason or another and I can't fall back asleep? That's different.
+
+At 3AM, when there's time and space to meditate on the problem, work becomes meditative. The serenity of the city that sleeps soundly. Some lo-fi or psybient playing quietly. The cold outside, or the warmth &mdash; doesn't matter. What matters is the silence, the lack of competing priorities, the absence of pressure.
+
+No race conditions between my brain and seventeen Slack notifications. Just me, the code, and a singular focus.
+
+At 3AM, those boring tasks that would make me punch the screen at 3PM? They feel like jacking into the Matrix. Pure focus. Pure flow.
+
+I am nocturnal. I've accepted this.
+
+## Breaking Through the Wall (One Brick at a Time)
+
+So how do you actually push through when the frustration hits and tomorrow keeps not coming?
+
+Stay a while and listen.
+
+### The 30 Minute Rule
+
+Give it 30 minutes. If you have no results, or only bad results, SCREAM FOR HALP! Someone's more peaceful mind and cleaner look will slay the beast. **Ego is expensive**. Help is cheap-ish. Use it.
+
+### Break it into dopamine shots
+
+Let’s sit with dopamine for a moment &mdash; because realizing how this 🤬 thing works is the difference between **owning** procrastination and being **pwned** by it.
+
+Dopamine isn’t a *pleasure chemical* (like oxytocin, which makes hugs and group projects feel good, or endorphins, which flood in after a run); it’s a *prediction* and *motivation* molecule. It surges when your brain **forecasts a potential reward** &mdash; not necessarily when you actually get it. Can you now see *why* you pick the tasks you pick, or even *how* you pick them? Why *this* user story *feels* better than *that* boring one? Your brain cares more about the **chase** than the **catch**.
+
+That’s why doomscrolling, inbox refreshing, and productive procrastination are incredibly treacherous. They dispense **variable dopamine hits**: 
+
+- New Post!
+- Message Reply!
+- New Comment!
+- Slack Ping!
+
+These keep you on the hook without ever giving genuine closure (i.e., finishing something meaningful).
+
+But here’s the hack (not really a bio-hack, but you get the point): hijack dopamine *toward* what matters. Train your system to reward the process, not just the result.
+
+How? Break big goals into **micro-tasks** you can ship fast. Did a small, meaningful change? `git commit`. Does a PR await merging? Go ahead &mdash; **merge it**. Close that ticket. Delete that TODO. Each tiny success delivers a clean *Oops, I did it again* hit &dash; real dopamine for real progress. Over time, your brain begins to prefer *steady micro-progress* over the empty calories of distraction.
+
+### Stubbornness plus movement
+
+I pace. I talk to myself. I go back and forth in my living room, ~~cursing~~ working through the problem out loud. Sometimes the solution isn't in the code. It's in getting your body moving and your mouth talking.
+
+Now, without too many technical shenanigans, this works because *walking* increases blood flow and basically wakes up the parts of your brain handling complex reasoning &mdash; not Neo Cortex, his younger brother, Prefrontal.
+
+Effectively *vocalizing* your thoughts is like sending a `nice` call on Linux; your working memory gets top priority, while all the other internal chatter (what’s for dinner, did I shut off the oven, is Obi-Wan Kenobi Leia's only hope) gets pushed down the queue.
+
+Suddenly your brain can actually focus on the problem at hand, because `movement + vocalizing` isn’t just a bad habit. It’s a way to prime your brain for the battle ahead: solving the problem in the best way possible.
+
+### Mood-aware task switching
+
+What if I can't concentrate, nobody's around for help, and I feel like hitting a wall? Science says your brain is probably in a **low dopamine / low motivation state**, which makes tackling big, hard problems brutal. Dark Souls, anyone?
+
+I switch to another small task, and here's the trick: if I'm in a self-destructive mood, I deliberately avoid the big, scary things. Instead, I focus on small wins (unblocking a process, writing a tiny PoC, sending status updates)anything that produces **fast, predictable dopamine hits**. These micro-progress tasks elevate mood and motivation, often within an hour or two, essentially performing a warm-reboot on the brain.
+
+Think of it like your brain’s own **OOM Killer**: when the big, heavy processes are blocking everything else, you temporarily kill low-priority tasks, let the small, manageable processes run, and regain enough headroom to attack the big problem without crashing.
+
+Then I return to the original problem, now reinforced and more determined. 
+
+Your brain has gotten a mini reboot: prefrontal cortex ready, working memory unblocked, motivation back in play.
+
+It never gets easier; you just figure out when your brain isn’t irradiated and ready to function.
+
+## The Eisenhower Unlock
+
+Learning to look at my tasks differently, changed everything for me:
+
+I follow the [Eisenhower Matrix](https://en.wikipedia.org/wiki/Time_management#Eisenhower_method) now. I delegate. I eliminate. I prioritize what must be done now versus what can wait. I split tasks so I can deliver quick wins. But more importantly, I learned to ask myself two questions:
+
+> Is this something that, if done by a colleague of mine, would actually benefit both of us?  
+
+
+> Do we really need to do this when there are a hundred other things on the backlog that, admittedly, have higher priority?
+
+|                     | **Urgent**                                      | **Not Urgent**                                |
+|---------------------|-------------------------------------------------|-----------------------------------------------|
+| **Important**       | **Quadrant I: Do First**<br>Tasks that require immediate attention and have high impact. | **Quadrant II: Schedule**<br>Tasks that are important but not time-sensitive. |
+| **Not Important**   | **Quadrant III: Delegate**<br>Tasks that demand attention but do not significantly contribute to your goals. Best to delegate if possible. | **Quadrant IV: Eliminate**<br>Tasks that are distractions or low-value activities. Ideally, minimize or remove these. |
+
+
+I used to procrastinate tasks that should have been delegated or eliminated. I'd let them sit in my queue, rotting, creating guilt and anxiety. Not anymore. Now I say:
+
+- We have other priorities right now. (*Do First*)
+- There is a critical production bug that we need to fix immediately. (*Do First*)
+- The system outage the customer reported needs our attention now. (*Do First*)
+- This doesn’t fit into the current sprint, we’ll schedule it later. (*Schedule*)
+- We’ll get to this in a best-effort way when we have the capacity. (*Schedule*)
+- Refactoring this core module is important, we’ll schedule it to prevent future issues. (*Schedule*)
+- This is perfect for the mentee to take on and learn from. (*Delegate*)
+- The new hire can handle this to get up to speed on the project. (*Delegate*)
+- This doesn’t align with our roadmap priorities. (*Eliminate*)
+- Experimenting with this new framework has no immediate payoff, so we’ll skip it. (*Eliminate*)
+
+Delegation isn't dumping work on someone else. It's **development**. It's recognizing that some tasks are better suited for others; either because they'll **learn from it**, because they have a **cleaner perspective**, or because you have **more important stuff to do**.
+
+And, yes, you **can** have more important stuff to do.
+
+Elimination isn't laziness. It's **leadership**. It's saying *this doesn't deserve anyone's time right now*.  
+
+The Matrix changed how I collaborate with my peers and crew. It changed how I look at what deserves my frustration… and what doesn't.
+
+## Tomorrow Comes in a Couple of Days
+
+Let's be honest: tomorrow *does* eventually come. Usually in a couple of days, driven by deadlines and guilt. That's one of the realities of professional software development.
+
+But now I have tools. The 30-minute rule. The Eisenhower Matrix. The quick wins. The stubborn marching and vocalizing. The self-aware mood management. The willingness to scream for help before I've wasted half a day being frustrated.
+
+The work doesn't get easier. The badly documented APIs don't magically improve. The boring tasks don't become fascinating. The user stories don't suddenly make sense.
+
+But you get better at recognizing what deserves your frustration &mdash; and what doesn't.
+
+You get better at catching yourself in the productive procrastination spiral before three weeks later becomes a crisis.
+
+You get better at knowing when you're in the right headspace to tackle the hard problem versus when you should switch to something that'll reset your mood.
+
+You get better at asking for help before the impostor syndrome and the "I'm not good enough" loop eats you alive.
+
+And sometimes, when the city sleeps and the lo-fi beats play and there's nothing but you and the code and the cold blue glow of your monitors, you remember why you started doing this in the first place.
+
+---
+
+## Reverse Engineering Hexplore: Game Texts
+
+URL: https://mistericy.github.io/blog/reverse-engineering-hexplore-2/
+Published: 2024-10-07
+Category: Reverse Engineering
+Tags: Reverse Engineering, Hexplore, x86 Assembly, Game Reverse Engineering, Ghidra, Binary File Formats, String Table Parsing, Game Text Extraction, Stream Cipher Decryption, Game Localization
+
+Learn how to reverse engineer game text formats from 1990s games. Extract, decrypt, and parse Hexplore string tables using x86 assembly analysis, Ghidra, and binary file format reverse engineering techniques.
+
+Video games are a unique kind of beast in the realm of software development—*aren't they all?* you might ask, and you'd be right. From operating systems to applications written for embedded systems, and from servers and services to ERPs and CRMs, each domain has its own quirks. I won't claim that video games belong to the toughest or weirdest domain—such a statement would be a blatant exaggeration. However, they are unique, both because of the constraints they impose on developers and the ways in which companies (and by extension, developers) get paid for them.
+
+## Mumbling
+
+While delving into how games generate profit is irrelevant to our current journey, understanding the constraints imposed on developers by the platform, available technology, and industry standards is crucial. As briefly discussed in my previous post, *Hexplore* was developed in the mid-'90s, when GPUs were not as advanced or widely accessible to home users, Pentium processors had just started dominating the market over older Intel/AMD/Cyrix models, CD-ROMs were relatively new, and hard drives were small and slow.
+
+| **Component** | **Requirement** |
+| :--------: | --------------------------------- |
+| **CPU** | Pentium 100MHz or _100% compatible_ |
+| **RAM** | 16 MB |
+| **CD-ROM** | 4x speed (600kb/s) |
+| **Sound** | Sound Blaster 16-bit or _compatible_ |
+| **GPU** | SVGA Video Card |
+| **OS**  | Windows 95/98 |
+
+These are the system requirements for *Hexplore*. While they may seem irrelevant at first glance, they serve as a constant reminder to stop questioning why developers made certain decisions—this game is over a quarter of a century old. It's important to note that a Pentium running at 100MHz could execute at most two instructions per cycle[^1], but most of the time, it would execute just one. Additionally, some instructions take more than one cycle to complete, and access to EDO RAM was slow. When combined with the fact that Pentiums lacked many of the features modern processors boast (e.g., [out-of-order execution](https://en.wikipedia.org/wiki/Out-of-order_execution), [speculative execution](https://en.wikipedia.org/wiki/Out-of-order_execution), and [cache prefetching](https://en.wikipedia.org/wiki/Out-of-order_execution)), execution speed becomes a critical factor. Simply put, 100MHz means the processor could perform 10<sup>8</sup> [instruction cycles](https://en.wikipedia.org/wiki/Instruction_cycle) per second—meaning each instruction cycle took roughly 10ns.
+
+The Pentium was a single-core, single-thread CPU, meaning only one process could execute at any given time. Windows 95, however, was a true multitasking OS — it employed [preemptive multitasking](https://en.wikipedia.org/wiki/Preemption_(computing)) to allow multiple processes to appear to run simultaneously. This is seamless to the user, as [time slices](https://en.wikipedia.org/wiki/Preemption_(computing)#Time_slice) are calculated by the scheduler to meet the needs of each process. However, this adds extra overhead that developers had to take into account. Their applications had to compete with others for resources, so they needed to execute tasks efficiently to prevent users from experiencing lag or slow loading.
+
+Moreover, while the _10GB barrier_ was broken in 1997, a typical hard drive had a capacity of around 4GB—which had to store the OS, other applications, documents, and more. As a result, most games of the era offered players the option to perform a minimal installation, copying only essential files to the hard drive while loading the rest from the CD-ROM as needed. This extended loading times, but given the hardware limitations, it was the preferable option for most users. For context, a 1x CD-ROM speed was equivalent to 150kb/s—*Hexplore* required a 4x CD-ROM (or faster). A file from the game's first level, for example, is 2.1MB, so in an ideal scenario, it would take around 4 seconds to load.
+
+Many of us remember placing the mouse cursor at the tip of a progress bar, anxiously wondering if an installation had frozen—yes, loading times in the '90s were often a painful experience. This is why developers employed clever techniques to reduce overhead, improve speed and responsiveness, and squeeze the best performance possible out of the hardware we had at the time.
+
+## First steps
+
+When we [last left](https://mistericy.github.io/2024/09/20/Reverse-Engineering-Hexplore-My-Journey-Begins/) our adventurer, he was discussing the game's texts. While I was correct in assuming that the game's strings are stored in the `Gbtxt.st1` file, it took me quite some time to understand not only the file's structure but also how *Hexplore* uses it.
+
+The first and most logical step was to search the file for a well-known string, like a game message or the name of an enemy. If you haven't met him yet, here's Glore:
+
+![A Glore, one of Garkham's Minions](../../assets/hexplore-glore.webp)
+
+Glores are described as *monstrous scum* and emit a vile laughter when you enter their line of sight and they decide to attack. While there are numerous references to glores in the game (hint: 18), I wasn't able to find any in the data file. The next logical step was to open the file with a hex editor and check for anything legible inside. However, I found no clues, as the file appeared entirely composed of garbage. Declaring it a dead end, I returned to Ghidra to continue reverse engineering the game.
+
+Searching for `.st1` in the **Defined Strings** window revealed one result: `txt.st1`. The fact that **Gb** is missing is pretty strange, hinting that we’re in for a surprise. This string is referenced *only twice* in the entire program (at least, that’s what Ghidra detected), so finding where the string loading and decrypting functionality occurs should be straightforward.
+
+Upon visiting the first location, we’re greeted by a long function. The first thing it does? It calls `sprintf` to generate a file path using the format: `%s\%s%s`. The first argument is `"common"`—there’s our directory. The third argument is the `txt.st1` string. Logically, the middle argument should be `Gb`... but how?
+
+Let's make a deviation...
+
+## Detecting the Game's Language
+
+If we backtrack a bit, we’ll notice a function call in `WinMain`, just before the game’s main loop begins. This function is called with a reference to a structure and, *I guess*, it performs some kind of initialization before allowing the game to proceed to the main loop. The function starts with a call to [`GetCurrentDirectoryA`](https://learn.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-getcurrentdirectory)—which is a curious choice. It stores the current directory in the aforementioned structure and then creates the following string:
+
+```c
+sprintf(buffer, "%s\\%s\\??%s", game->gameDir, "common", "txt.st1");
+```
+
+It then immediately calls [`FindFirstFileA`](https://learn.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-findfirstfilea):
+
+```c
+WIN32_FIND_DATAA findData;
+HANDLE hFindFile = FindFirstFileA(buffer, &findData);
+if (hFindFile != INVALID_HANDLE_VALUE) {
+  // We found something:
+  gameLanguage[0] = findData.cFileName[0];
+  gameLanguage[1] = findData.cFileName[1];
+  gameLanguage[2] = '\0';
+}
+```
+
+So, if the file were named `Gntxt.st1`, would the game's language be set to `Gn` (*hint: German*)? Oh yes, it would!
+
+There’s little point in debating whether this decision was good or bad. It’s certainly an odd one, considering the developers could have chosen a more straightforward way to detect the game's language. For example, they could have written a value to the Windows Registry during the game’s installation.
+
+When the game starts, the memory location where the language will eventually be stored contains the string `XX`, which is then updated by this method. However, another curious decision stands out: the use of `GetCurrentDirectoryA`.
+
+According to Microsoft's documentation, this function *retrieves the current directory for the current process*. But what exactly is the current directory? While not explicitly explained in the documentation, it refers to the directory you're currently in when launching the application. For instance, if the game is installed in `C:\Hexplore\` and you open a command prompt at `C:\` and run `.\Hexplore\hexplore.exe`, guess what? `GetCurrentDirectoryA` will return `C:\`. You see where this is going?
+
+If we try this little experiment, we’ll notice that *Hexplore* will fail to start, displaying a message box that reads **FILE ERROR: 5** along with the problematic file path (in our case, `C:\common\XXtxt.st1`).
+
+A better approach here would be to use [`GetModuleFileNameA`](https://learn.microsoft.com/en-us/windows/win32/api/libloaderapi/nf-libloaderapi-getmodulefilenamea), which retrieves the actual path of the executable. With a bit of string manipulation, the correct path could be derived, and small bugs like this wouldn’t exist (*Note to future self: make it fail-proof when you start implementing it*).
+
+## Back to String Finding
+
+Right after setting the game's language, *Hexplore* calls the long function that greeted us earlier. As we discussed, it crafts the proper path to the file and stores it in a buffer. It then proceeds to check if the file exists and loads it into memory.
+
+```c
+void __cdecl LoadStringsFromDisk(LPCSTR fileName,char *data,int shouldDecryptStrings);
+```
+
+This function does the following:
+
+- Retrieves a handle for the file.
+- Retrieves the file's size.
+- Allocates memory to store the file.
+- Reads the file.
+- Closes the file.
+
+All steps use the Windows API to perform file operations.
+
+Subsequently, if the `shouldDecryptStrings` parameter is not equal to `0`, it proceeds with decrypting the data in place.
+
+*Hexplore* has an intricate and interesting way of accessing files, which will be analyzed in another post once I have completely figured it out. For the time being, what is important is to see how the decryption takes place.
+
+### Decryption
+
+```c
+// Simplified version of loading the data from disk:
+long size = GetFileSize(handle);
+char* data = (char*)malloc(size);
+ReadData(handle, data, size);
+
+if (shouldDecryptStrings != 0) {
+  char key = 0x37; // Set the initial key
+  int i = 0; // Set the counter 
+  while (i < size) { // While there is data in the buffer
+    char temp = buffer[i] ^ key; // XOR the current character with the key
+    key = key + buffer[i] + 0x33; // Add 0x33, the current character, and the key to key
+    buffer[i] = temp; // Store the decrypted character
+    i++; // Increment the counter
+  }
+}
+```
+
+Since I had never encountered this type of encryption before, I did some research and found that it resembles a [Stream Cipher](https://en.wikipedia.org/wiki/Stream_cipher).
+
+While I'm no expert on encryption, I’d like to share a few observations:
+
+1. This encryption implementation serves a dual purpose: on one hand, it adds a layer of complexity to the data, making it harder for players to modify the game or inadvertently break it while trying to mod it. On the other hand, it helps protect the game's integrity, ensuring that players experience the game as intended.
+2. The decryption process is quite efficient, as it performs a per-byte XOR operation, which is lightweight (_hint: takes 1 instruction cycle on the Pentium_). As mentioned earlier, in the realm of video games, speed and efficiency are crucial to prevent choppy gameplay or long loading times.
+3. The use of a dynamic key per byte introduces an additional layer of obfuscation that makes simple attacks more challenging. This prevents easy key prediction and makes brute-force attempts more difficult.
+4. While this method might seem simplistic by today's standards, it highlights the creative solutions game developers employed in the '90s to protect their games. Even simple encryption methods like this could deter casual modding and hacking efforts.
+
+## It's Decrypted, but It Still Makes No Sense
+
+After writing some quick and dirty code to decrypt the file and store it locally in its decrypted form, I opened it again with a hex editor to investigate its contents. While I was able to find _Glore_ and all of the strings used in the game, I was puzzled by the file's structure. It seems to have a header and contains much more data than just the game's strings. Since I was not able to find any information on the internet regarding this file format, I believe it is probably a proprietary format used exclusively for this game. [Heliovisions](https://www.mobygames.com/company/1859/doki-denki-sa/) released six games, and of those, only **two** were released for Windows. It is highly unlikely that they used this format in another game, and researching further into this matter seems futile. While one approach would be to look up the game's credits and search for other games created by *Hexplore*'s development team, it's uncertain that I would find anything. Thus...
+
+Back at Ghidra. Right after the call to `LoadStringsFromDisk`, there's another call whose first argument is a pointer to the unencrypted data. Interesting... Let’s follow it to see where it leads us.
+
+## `FUN_004160a0`
+
+```c
+void __cdecl FUN_004160a0(char *decryptedData,uint param_2,int *param_3)
+```
+
+First of all, the function performs a simple check to determine whether the pointer that contains the decrypted data is allocated. Subsequently, it checks if its first integer element equals `0x54585423`. Since X86 is [little-endian](https://en.wikipedia.org/wiki/Endianness), this corresponds to `0x42545854`, or `BTXT` if translated to ASCII. Hey! I think we've found a header, since this seems like a [magic number](https://en.wikipedia.org/wiki/File_format#Magic_number)! 
+
+The next check is against the 3rd integer in the decrypted data (`0x08`) and ensures that it is not equal to 0. _Definitely a header_. Finally, it checks if the third parameter isn’t `NULL` and that the second parameter is less than `100000000`.
+
+```x86asm
+; First check: Is the pointer allocated?
+MOV ESI, dword ptr [ESP + decryptedData]
+TEST ESI, ESI                   
+JZ return
+
+; Second check: Is the first four bytes of the header valid?
+MOV EAX, dword ptr [ESI]
+CMP EAX, 0x54585442
+JNZ return
+
+; Third check: Is the third element of the header not zero?
+MOV EAX, dword ptr [ESI + 0x08]
+TEST EAX, EAX
+JZ return
+
+; Fourth check: Is the third parameter of the function allocated? 
+MOV ECX, dword ptr [ESP + param_3]
+TEST ECX, ECX
+JZ return
+
+; Fifth check: Is the second parameter less than 100000000?
+MOV EDX, dword ptr [ESP + param_2]
+CMP EDX, 0x5f5e0ff
+JA return
+```
+
+With these clues so far, we can deduce that the file does have a header, so we will continue investigating the function to determine how long the header is, from which fields it is composed, and what values they have. Moving on, the function performs some initialization of `param_3`:
+
+
+```x86asm
+MOV dword ptr [ECX],0x0
+MOV dword ptr [ECX + 0x4],0x0
+MOV dword ptr [ECX + 0x8],0xffffffff
+```
+
+It seems that `param_3` is a structure which might look like the following:
+
+```c
+typedef struct {
+  void* unknown1;
+  void* unknown2;
+  int unknown3;
+} UnknownStruct;
+```
+
+Subsequently, the function runs the following code:
+
+```x86asm
+; Load into EDI the fourth field of the header
+MOV EDI, dword ptr [ESI + 0xc]
+; Load into EBP the third field of the header
+MOV EBP, dword ptr [ESI + 0x8]
+; Add the base address of the decryptedData pointer into EDI
+; Now EDI points to another address, which means that the fourth
+; field of the header is an address within the file
+ADD EDI, ESI
+```
+
+Alrighty! Back to the hex editor! The file's value at position `0xC` is `0x0000001C`. This means that now, `EDI` points to wherever the pointer is located in memory, plus `1C` (or 28 in decimal) bytes ahead of the pointer's start. Thus, this strengthens our belief that this field in the header contains an address inside the file where something begins. The value at `1C` is `0x00000000`, so we don't have anything solid yet. Let's continue:
+
+```x86asm
+; Load the third field of the header into EBX
+MOV EBX, EBP
+; Divide EBX by two
+SHR EBX, 1
+; Load into EAX the contents of the address pointed to by 
+; EDI (currently at 1C) plus EBP times four.
+LEA EAX, [EDI + EBP * 0x4]
+```
+
+`EBP` stores the data found in the third field of the header. By examining the file, we’ll notice that this value is `0x52C` (or 1324 in decimal). Subsequently, `EBX` stores its half, which is `0x296` (or 662 in decimal). Finally, `EAX` is loaded with the value found at the address pointed to by `EDI` (wherever the pointer lies, plus `0x1C`) plus `0x14B0`, resulting in `0x14CC`.
+
+Conveniently, the fifth field of the header contains the value `0x14CC`. Therefore, this must be another address, either the beginning of a section or the end of a section, since the file contains much more data beyond that address. As this starts to look like a pattern, I had to investigate the values of what I thought was the header.
+
+```c
+typedef struct {
+  int magic;  // Always 'BTXT' 
+  int unknown1; // 0x100
+  int unknown2; // 0x52c
+  int unknown3; // 0x1c
+  int unknown4; // 0x14cc
+  int unknown5; // 0x52dc
+  int unknown6; // 0x297c
+} st1header;
+```
+
+I first went to `0x14CC`, which is a strong lead since it appears both in the file and in the calculation in the code. The value at that position is `0x52DC`... Wait, what? A quick jump to `0x52DC` reveals the value `0x72745300`. However, I can see in my hex editor that the string **Strength:** appears, followed by a NUL character. I jumped back to `0x14D0`, which contained the value `0x52DD` where the **Strength:** string begins, and I wondered, *does the pattern continue*?
+
+- `0x14D4` contains the value `0x52E7` => **Mechanism** followed by a NUL character.
+- `0x14D8` contains the value `0x52F1` => **Incantation** followed by a NUL character.
+
+The last string can be found at address `0x15898`, so by looking for that value in the file, we’d probably find where it is stored. The search reveals that this is found at address `0x2978`, which is strangely close to the value stored in the `unknown6` field in the header. As such, we can deduce that:
+
+1. At `0x001C`, an unknown section starts.
+2. At `0x14CC`, a section that contains addresses of the real strings starts.
+3. At `0x297C`, another unknown section starts.
+4. At `0x52DC`, the strings section starts.
+
+
+```c
+typedef struct {
+  int magic;  // Always 'BTXT' 
+  int unknown1; // 0x100
+  int unknown2; // 0x52c
+  int addrUnknown1; // 0x1c
+  int addrStringLocationStart;
+  int addrStringStart; // 0x52dc
+  int addrUnknown2; // 0x297c
+} st1header;
+```
+
+> It’s four in the morning, and I think it’s time for me to sleep. I’m probably killing off the few healthy brain cells I have left, trying to figure out how this thing works. 
+> #GiveMeMoreAssembly.
+
+```x86asm
+; Compare EDI (ptr + 0x1C) with EAX (ptr + 0x14CC)
+CMP EDI, EAX
+; Load into EBX the value stored at EDI (ptr + 0x1C)
+; plus EBX multiplied by 4 (to get the correct offset)
+LEA EBX, [EDI + EBX * 0x4]
+JNC return
+```
+
+![Where we currently stand](../../assets/st1-file-structure-1.png)
+
+```x86asm
+LAB_0041610a:
+; Load the contents pointed to by EBX into ECX
+MOV ECX, dword ptr [EBX]
+; Compare the value in ECX with EDX (param_2)
+CMP ECX, EDX
+; If they are equal, jump to LAB_0041612d
+JZ LAB_0041612d
+JLE LAB_00416116
+; Load EBX into EAX for further processing
+MOV EAX, EBX
+JMP LAB_00416119
+
+```
+
+Now we are getting somewhere! First and foremost, we identified that `param_2` is used for matching something from the *Unknown 1* area, so it must be important for the game and will most likely give us more answers. Instead of continuing to read assembly, we'll perform some **speculative execution** and assume that we have a match; thus, we are going to jump to `LAB_0041612d`. 
+
+The _we have a match_ code is pretty straightforward and reveals even more information about the structure of the file and the algorithm that is used to search for a string inside the strings file. Firstly, it uses the address of `EBP`, which is the address of the matching element, and adds to it the third field of the structure multiplied by 4, in order to access the **String Locations Area**. From that point, it reads the value at the given location and resolves it to find the string, setting the pointer &mdash; the first field of the structure found in `param_3` &mdash; to the actual string. Subsequently, it finds the relevant position in the **Unknown 2 Area** and sets the next two fields of the structure to the values found in the file.
+
+As such, we can make the following observations:
+
+1. The **Unknown 1 Area** contains the String IDs sorted in ascending order; thus, `param_2` is the ID of the string we want to retrieve.
+2. The third parameter of the function is a structure that contains a pointer to the actual string and extra data obtained from the file. The **Unknown 2 Area** contains this extra data.
+3. The header of the file and the structure containing the information we want look like the following:
+
+```c
+typedef struct {
+  int magic;      // Always 'BTXT'
+  int unknown;    // 0x100, probably version or other flags
+  int nEntries;   // Number of strings in the file
+  int addrIdx;    // Address of the index section
+  int addrStrLoc; // Address of the strings location section
+  int addrStrSec; // Address of the strings section
+  int addrExtra;  // Address of extra data section    
+} StringTableHeader;
+
+typedef struct {
+  char* string;   // Pointer to the actual string
+  int unknown1;   // Unknown extra data
+  int unknown2;   // Unknown extra data
+} StringEntry;
+```
+
+## Verifying Our Claims
+
+Let's say that we are looking for the string with ID = `45141`. The game will perform a binary search (which is *fast*) to determine where this value is located in the Index Section. When it does, it will add `0x14B0` (or the number of entries * 4) to move the the Strings Location Section in order to find where the string is located in the file. It will extract the string (and the extra data found at `0x297C` plus the position of the index in the Index Section) and return a `StringEntry` structure:
+
+![Do you want to recruit this warrior?](../../assets/hexplore-warrior-1.webp)
+
+> It's time to settle the score with Garkham and his army of monstrous glores. 
+> I am a powerful and brave-hearted warrior. I would like to offer my services to your band!
+
+The most interesting part of this approach is that when Hexplore requires loading a string for displaying, it only needs 12 bytes of memory since it does not copy the string to the `StringEntry` structure but uses a _reference_ to its location in the `decryptedData`! Talk about optimizations and resource conservation!
+
+Armed with all this information, I can start working on something solid &mdash; a library to read and write the String Table (I guess that `st1` means *String Table version 1*), which can be used both in the development of a tool (for modding) and for the recreation of the engine, should I ever decide to pursue it.
+
+## What's Next
+
+One milestone down, many more to go! There are many more file types to understand, document, and manipulate, among which are:
+
+1. `sb0` files, which contain textures.
+2. `vb1` files, which contain 3D assets.
+3. `bin` files, which contain information about levels, maps, heroes, and other game-related data.
+4. `sbk` files, which contain music and sound samples.
+5. `sav` files, which contain save data.
+
+However, things are going to get serious since I'll have to reverse engineer the graphics engine, the sound engine, and the game engine to understand these data files. Maybe not in their entirety, but I'll need to have a very clear picture of how they work and how they use the files and the data that resides in them to perform the same work as I did here.
+
+I am not entirely sure what I will settle on; for the time being, I'm just moving around, reverse engineering here and there, and documenting things. Maybe I'll have something solid the next time we speak, maybe I won't. However, one thing is certain: The process is underway.
+
+---
+
+## Reverse Engineering Hexplore: My Journey Begins
+
+URL: https://mistericy.github.io/blog/reverse-engineering-hexplore-1/
+Published: 2024-09-20
+Category: Reverse Engineering
+Tags: Reverse Engineering, Hexplore, x86 Assembly, Game Reverse Engineering, Ghidra, Win32 API, DirectX, Software Archaeology, Binary Analysis, Game Hacking
+
+Learn reverse engineering techniques by exploring Hexplore, a 1990s game. Master x86 assembly, Ghidra decompilation, Win32 APIs, and game data formats to resurrect classic software.
+
+Recently, I came across a game that's nearly a quarter of a century old: [Hexplore](https://www.gog.com/en/game/hexplore). It's an Action / Adventure game with RPG elements and the GOG description reads:
+
+> Immerse yourself in a medieval world. A world where Garkham, Grand Master of the Black Magicians, has sworn to take possession of the Book of Hexplore. From this moment, the whole world is in great peril. For this manuscript will most certainly lead those who find it to the Garden of Eden, resting place of the Divine Power.
+
+![Hexplore Screenshot](../../assets/hexplore.webp)
+
+Back in those days, I was the proud owner of an AMD K6 with a super-noisy 2GB hard drive, 32MB of RAM, and a VGA card capable of displaying 256 colors at 640x480 resolution on a 14-inch CRT monitor. Now _that’s_ what I call a gaming setup!
+
+Nostalgia aside, it’s a game I spent countless hours playing, fighting monsters and solving riddles and puzzles. It was nowhere near Diablo, either in terms of hack-and-slash combat or RPG elements, but it had its moments. Over the years, I’ve revisited it occasionally &mdash; not just for nostalgia, but for its unique design and gameplay.
+
+Unfortunately, even with its GOG re-release, the game feels nearly unplayable on modern systems. It was designed for 640x480 resolution with 256 colors, and as you can imagine, running that on a 32-inch 4K monitor is far from ideal.
+
+So, I thought:
+
+> _Can I do something about it?_
+
+Being me, with my crazy ideas about impossible things, I figured I _might_ be able to make the game playable again. Unfortunately, this is a long and difficult project that could take years, and the most likely outcome is that it may never be finished. But I’ve started. And this is my journal of reverse engineering a 90s game.
+
+## First things first: Baby Steps
+
+It’s been a very long time since I last touched C++ or read x86 Assembly. To tackle a project like this, you not only need a copy of [Ghidra](https://ghidra-sre.org/), but you also need to know a thing or two about how those ~~magnificent~~ hellish machines, operating systems, and APIs work. Being a firm believer in RTFM[^1], I knew I had to start by getting my hands on some good documentation.
+
+> Enter the world of software archaeology
+
+Hexplore was released in August 1998, the same year as Windows 98. Given that the company that developed the game was formed around [1996](https://rpgwatch.com/developers/heliovisions-productions-1069.html) and that the typical development cycle for a game was around one year[^2], I estimate that it took about 12 to 18 months to develop. So, we can safely say that development likely began in late 1996 or early 1997.
+
+Assuming they used whatever cutting-edge technology was available at the time, we can make the following guesses:
+
+1. There was no [MMX](https://en.wikipedia.org/wiki/MMX_(instruction_set)) or [3DNow!](https://en.wikipedia.org/wiki/3DNow!); the world ran on the good old x86-32 instruction set.
+2. Development was likely done on Windows 95/NT4, as both were released in 1995.
+3. The code was probably written in Visual C++ 4.0, which was released in late 1995.
+4. The game probably uses Microsoft's DirectX 5.0.
+
+For the time being, we need the following resources:
+
+- [x86 Instruction Set](https://www.felixcloutier.com/x86/) (_I don’t suggest Intel’s or AMD’s PDFs, as they are ginormous._)
+- [Win32 API](https://learn.microsoft.com/en-us/windows/win32/api/)
+- [DirectX 5 Documentation](https://library.thedatadungeon.com/directx5/)
+
+Also, I should get a [book](https://www.amazon.com/x64-Assembly-Language-Step-Step-dp-1394155247/dp/1394155247) or [two](https://www.amazon.com/Learn-Program-Assembly-Foundational-Programmers/dp/1484274369/) on x86 Assembly. Besides the instruction set, I need to understand how things work in order to reverse-engineer and rewrite them effectively.
+
+And thus, armed with the forbidden manuscripts, patience, and a cup of coffee, I'll delve into the ancient art of reverse engineering. For it is not enough to merely read the cryptic runes of `REPNE SCASB ES:EDI` from dusty tomes of knowledge; no, I must grasp their very essence, to unweave the fabric of the machine and forge it anew in a higher tongue. Only then can I hope to resurrect the relics of the past, breathing life into the forgotten code once more.
+
+## The lair of Ghidra
+
+For the record, let me state that I am not a beginner in either reverse engineering or assembly. I had a pretty solid knowledge of how _stuff_ works. And I’m using the past tense because I haven’t touched either assembly or reverse engineering in a very long time. Yet, I still remember a trick or two.
+
+Ghidra, besides being a [disassembler](https://en.wikipedia.org/wiki/Disassembler), is also a [decompiler](https://en.wikipedia.org/wiki/Decompiler). It can not only translate machine code into Assembly, but it can also (try to) reconstruct a C representation of the program we are working on. This is both a curse and a blessing.
+
+### Blessings
+
+It’s a blessing for those of us who can use our heads as a C interpreter &mdash; _shift by eight bits and **and** it with `0xff`_ &mdash; however, the following simple snippet requires a translator for those who are not accustomed to reading assembly:
+
+```assembly
+MOV ECX, 0x08
+SHR EAX, ECX
+MOV ECX, 0xff
+AND EAX, ECX
+```
+
+### ...and curses
+
+And it’s a curse, a terrible curse that can sometimes frustrate you so much that you’ll want to punch your shiny, curved screen right in the middle. I won’t tell you the reason before giving you a real-life example that I’ve come across countless times:
+
+```assembly
+MOV EDI, dword ptr [PTR_DAT_00590108]
+OR ECX, 0xffffffff
+XOR EAX, EAX
+MOV dword ptr [ESP + local_248], EDI
+REPNE SCASB ES:EDI
+NOT ECX
+DEC ECX
+MOV EBP, ECX
+```
+
+Let's see, what does this do?
+
+The first four instructions are not a big deal; we load the value of a pointer into the `EDI` register, we
+set the `ECX` register to `0xffffffff`, we clear the `EAX` register and we move the value of `EDI` into our stack, on the position specifed by `ESP + local_248`. However, the fifth instruction is pretty interesting. It [scans](https://www.felixcloutier.com/x86/scas:scasb:scasw:scasd) a byte in `EDI` and compares it with the value stored in `AL`. It [repeats](https://www.felixcloutier.com/x86/rep:repe:repz:repne:repnz) that scanning until either the zero flag (`ZF`) is set or `ECX` is 0.
+Does it start making sense?
+
+After scanning the string, it `NOT`s the `ECX` register and decrements it by one, effectively giving us the number of bytes the string contains, or simply `strlen`.
+
+But why, Ghidra, doesn’t it simply translate this to `strlen` and instead translates it to (more or less) the following gibberish?
+
+```c
+uVar1 = 0xffffffff;
+local_248 = (WCHAR *)PTR_DAT_00590108;
+pcVar10 = PTR_DAT_00590108;
+do {
+    if (uVar1 == 0) break;
+    uVar1 = uVar1 - 1;
+    cVar7 = *pcVar10;
+    pcVar10 = pcVar10 + 1;
+} while (cVar7 != '\0');
+pCVar9 = (LPSTR)(~uVar1 - 1);
+```
+
+It’s quite possible that the compiler performs aggressive optimization by inlining the `strlen` function (i.e., replacing the function call with the body of the function), which effectively eliminates the overhead of calling the function. Alternatively, it could be due to decompilation limitations, which may not map the assembly code directly to a function call. Whatever the case, we know that we cannot truly rely on the decompiler and definitely need to understand assembly.
+
+That's where a reference to assembly instructions comes in handy &mdash; and more than that, it is the go-to resource when something doesn’t make any sense.
+
+## Verifying our claims
+
+After loading and analyzing the executable, we can see that Ghidra has identified a couple of VC++ library functions, such as `_strlen`, `_memcmp`, and `_rand`. This strongly indicates that the game was written in C/C++ and compiled with Microsoft's compiler. The exact version is not known, but it is likely one of Visual C++ 4.0, 5.0, or 6.0. And since the world hadn't yet discovered the marvels of [SIMD](https://en.wikipedia.org/wiki/Single_instruction,_multiple_data), we’ll be working with fewer instructions, fewer registers, and less complex stuff. _Everything is awesome!_
+
+By navigating Ghidra's **Symbol Table**, we can see calls to `DirectDrawCreate` (that's DirectX's DirectDraw 😉), `DirectSoundCreate` (🎧), `_SmackOpen` (that's [Smacker Video](https://en.wikipedia.org/wiki/Smacker_video) 🎥), and various other Win32 API calls. Hexplore also uses [SecuROM](https://en.wikipedia.org/wiki/SecuROM), and I'm sure I'll find some code related to it as well.
+
+With our resources ready to be consumed, the executable disassembled, and a fresh cup of coffee, we are ready to get into some serious software archaeology and reverse engineering. But before diving deep into the obscure world of x86, let's cover a few final things &mdash; which, I believe, I should have stated earlier in this post.
+
+## What now?
+
+As you have undoubtedly guessed, this is the first part in a series of posts focused on both reverse engineering and the methods used to understand and re-implement something, as well as on the specific game &mdash; which I enjoyed playing both as a kid and as an adult. The posts will follow a _diary format_. I do not intend to write a book on RE, nor tutorials on the subject. I merely want to document a long journey I’ve decided to embark upon in order to expand my knowledge, have some fun tinkering with an old game, and, why not, produce something useful &mdash; either for myself or for others.
+
+This journey had some milestones set from its inception stage &mdash;that is, when I first thought, _why not reverse engineer Hexplore?_. The first milestone has been reached: researching the resources I’ll need to start working on it. I might not know everything, and I am sure weird things will come up along the way, but I have a solid stash of information I can use to understand and re-implement the things I want to. Hexplore uses a [voxel](https://en.wikipedia.org/wiki/Voxel) engine, which (most probably, needs to be verified) was implemented in software. Considering the limitations of the software and hardware that existed back then, everything was new: 32-bit Windows, DirectX, hardware accelerators (nVidia’s Riva, 3dfx’s Voodoo, and ATI’s RAGE are some examples) were just becoming affordable for home computers—you name it. _Could I re-implement this voxel engine in a modern API, say, Vulkan?_
+
+I honestly don't know. Thus, I’ve set the project's milestones and will try to reach them:
+
+- [X] Investigate the game and gather necessary resources for reverse engineering
+- [ ] Reverse engineer the game's data file formats and produce documentation for them
+- [ ] Craft tools for viewing (and possibly manipulating) the game's assets
+- [ ] Imagine something bigger.
+
+Understanding the game's data file formats, although it sounds simple, will be both a difficult and time-consuming task &mdash; as such, it must not be underestimated. I've already started looking into the files that hold the game's texts (i.e., the `st1` files) and made some progress, but that's a story for another post.
+
+## Closing words
+
+The next time we meet, I'll be making a deep dive into the game's data file formats. Expect some frustration, as the developers have taken some clever measures against people like me (which is not unheard of). We'll also get our hands dirty with some C++, talk about developer decisions, and continue our journey into the abyss. And as those who have played Hexplore vividly remember:
+
+> You must gather your party before venturing forth.
+
+[^1]: Read(ing) the fucking manual.
+[^2]: id Software began working on Doom [after the release of Spear of Destiny](https://5years.doomworld.com/interviews/johnromero/), and the game was released on [December 10, 1993](https://en.wikipedia.org/wiki/Doom_(1993_video_game)).
+
+---
+
+## Extreme PHP Debugging: GDB & Docker Guide
+
+URL: https://mistericy.github.io/blog/extreme-debugging-in-php/
+Published: 2022-12-01
+Updated: 2026-01-18
+Category: Debugging
+Tags: PHP, Debugging, GDB, Docker, PHPUnit, xdebug, Software Engineering, Troubleshooting, PHP Development, Advanced Debugging
+
+Learn how to debug PHP crashes using custom debug binaries, Docker, and GDB. Master extreme PHP debugging techniques when standard tools fail.
+
+It was one of those awkward, lonely and quiet nights. I could not tell what [Spotify](https://open.spotify.com/track/0nMKVMCXCmRplsKKLt1TTh) was playing, nor what time it was. My eyes were fixed on my terminal's cursor. It was blinking, constantly blinking, like it was taunting me.
+
+Some of my PHPUnit tests were crashing unexpectedly while trying to generate code coverage. There was no exception, no error message, no stack trace—nothing. The coverage report was never created and the PHP process was exiting silently with code `143`.
+
+What the actual 🤬?
+
+This is a story about **extreme PHP debugging**—when standard PHP debugging tools fail and you need to dive deep into PHP's internals using custom debug binaries, Docker containers, and the GNU Debugger (GDB) to track down crashes that occur at the C level.
+
+So, first things first. How can you debug your tests, or even PHPUnit in such a case? The answer is easy. You don’t because you can’t. Such behavior alludes that something quite sinister lurks in your code. Something that crashes deep inside PHP’s code. A statement, whose existence, creates a fatal error.
+
+But we aren’t here to talk about what you can’t do. We are here to talk about what you can, actually, do.
+
+## Advanced PHP Debugging Techniques
+
+I’ve lost count how many times I stumbled across a similar issue. Normally, I would totally ignore the issue. I would try my tests one by one in order to determine which one is the problematic. I would surrender, had I not been able to pinpoint the problematic piece of code. But I am not that person and I suspect that you aren’t that person as well. So… Let’s debug it.
+
+For starters, you can’t debug PHP with pre-compiled PHP binaries. You have to properly configure and compile your own binaries! And since we’ll need a whole toolchain for this, let’s Dockerize it.
+
+> I’m using Debian for this Docker image, but feel free to use the linux flavor you prefer.
+
+## 👶 Baby Steps
+
+```dockerfile
+FROM debian:bullseye-slim
+WORKDIR /php
+```
+
+We, obviously, need to install the minimum set of dependencies to build PHP, so let’s have a look at the [official repo](https://github.com/php/php-src#readme):
+
+```dockerfile
+RUN apt-get update && apt-get install -y pkg-config build-essential \
+    autoconf bison re2c libxml2-dev libsqlite3-dev
+```
+
+We need to fetch the source for the PHP version we want to build. Luckily, we will not have to `git clone` PHP’s repo, since PHP offers source code [downloads](https://www.php.net/downloads.php) in their page. We’ll use PHP 7.4.33 and we need a way to download it into our image. Unfortunately `wget` is not installed in `bullseye-slim` so we’ll have to `apt-get` it as well.
+
+So, we’ll go to the previous step where we are fetching PHP’s dependencies and we’ll add `wget` as well.
+
+After doing so, we are ready to download PHP:
+
+```dockerfile
+RUN wget -nv https://www.php.net/distributions/php-7.4.33.tar.gz && \
+    tar xzf php-7.4.33.tar.gz
+WORKDIR /php/php-7.4.33
+```
+
+We have downloaded, extracted and cd’d into PHP’s source! Now what? We’ll have to generate the configuration and configure the build prior to compiling:
+
+```dockerfile
+RUN ./buildconf -f
+```
+
+At this point, we are ready to configure and compile PHP 7.4.33. However, this isn’t a simple, copy snippet / paste snippet, case.
+
+1. You have to know how you want to configure your binaries.
+2. You have to know which PHP extensions your code requires.
+3. You have to know whether to enable or disable something.
+
+And this is a process of thinking, reading, trying and failing, until you succeed.
+
+So, build your image, create a container and open a shell into it. Your working directory will be the one where PHP’s sources lie. Type `./configure --help | more` and read through the extensive list of configuration options. A minimum debug build requires the flag `--enable-debug`.
+
+However, in my case, and most probably in yours as well, you’ll need some other stuff too. Such as cURL, sockets or intl. And in order to set up these, you’ll have some [fun](https://dwarffortresswiki.org/index.php/DF2014:Losing).
+
+## 🛠️ Configuring and Building PHP
+
+Make a list of the extensions you need included and features you need enabled (or disabled). **DO NOT ADD THE CONFIGURE OPTIONS TO THE DOCKERFILE, YET.**
+
+> I repeat, DO NOT ADD THEM TO THE DOCKERFILE, YET!
+
+You remember me telling you, to open a shell into the container you built? The reason you need it, is because you will have to **fetch the extensions’ dependencies**.
+
+> Didn’t I tell you that this is going to be fun?
+
+```shell
+./configure --enable-fpm \
+    --enable-debug \
+    --with-openssl \
+    --with-zlib \
+    --with-curl \
+    --enable-gd \
+    --with-gettext \
+    --enable-intl \
+    --with-ldap \
+    --with-mysqli \
+    --enable-pcntl \
+    --enable-sockets \
+    --enable-sysvmsg \
+    --with-xsl \
+    --with-zip \
+    --enable-mbstring \
+    --with-pdo-mysql \
+    --disable-short-tags
+```
+
+The configure script is going to perform some checks and crash at some point or another, complaining about not being able to find some development dependencies. If it can’t find `ldap` you’ll probably have to `apt-get install libldap-dev`. If it can’t find Oniguruma, you’ll (not obviously, but probably) have to install `libonig-dev`. Rinse and repeat. Use common sense, apt-cache search and Google, in order to determine what you actually need.
+
+When you have gathered every package you have to install, you’ll have to modify your Dockerfile so that they get fetched, before you even attempt to configure PHP.
+
+Before venturing forth, run a `make clean && make -j${nproc} && make install`. Just in case. If everything went well, `php -v` should give you output, stating it’s version and that it is a `NTS DEBUG` build.
+
+> #EverythingIsAwesome.
+
+At this point, we’ll also need xdebug. You know the drill. Grab its source in `tar.gz` format from xdebug’s downloads page, bring it into the container and extract it is its own directory. `phpize`, `configure`, `make`.
+
+When everything is tested in the container you are working, you should move everything into your Dockerfile. It should look something like this:
+
+```dockerfile
+FROM debian:bullseye-slim
+
+RUN apt-get update && \
+    apt-get upgrade && \
+    apt-get install pkg-config build-essential autoconf bison re2c wget gdb \
+    libxml2-dev libsqlite3-dev libonig-dev libz-dev \
+    libssl-dev libcurl4-openssl-dev libzip-dev libpng-dev \
+    libldap-dev libxslt-dev
+
+WORKDIR /php
+# Download PHP & xdebug
+RUN wget -nv https://www.php.net/distributions/php-7.4.33.tar.gz && \
+    tar xzf php-7.4.33.tar.gz && \
+    wget -nv https://xdebug.org/files/xdebug-3.1.6.tgz && \
+    tar xzf xdebug-3.1.6.tgz
+
+# Build PHP
+WORKDIR /php/php-7.4.33
+
+RUN mkdir -p /usr/local/etc/php/conf.d/
+
+RUN ./buildconf -f && \
+    ./configure --enable-fpm \
+    --enable-debug \
+    --with-openssl \
+    --with-zlib \
+    --with-curl \
+    --enable-gd \
+    --with-gettext \
+    --enable-intl \
+    --with-ldap \
+    --with-mysqli \
+    --enable-pcntl \
+    --enable-sockets \
+    --enable-sysvmsg \
+    --with-xsl \
+    --with-zip \
+    --enable-mbstring \
+    --with-pdo-mysql \
+    --disable-short-tags \
+    --with-config-file-scan-dir=/usr/local/etc/php/conf.d/ && \
+    make clean && \
+    make -j${nproc} && \
+    make install
+
+# Build xdebug
+WORKDIR /php/xdebug-3.1.6
+
+RUN phpize && \
+    ./configure --enable-xdebug && \
+    make -j${nproc} && \
+    make install
+
+RUN mkdir -p /var/www/html/
+
+WORKDIR /var/www/html
+```
+
+## Debugging PHP Crashes with GDB
+
+If you are observant enough, you’ll already have noticed that I added [`gdb`](https://en.wikipedia.org/wiki/GNU_Debugger) in the packages I am fetching into our image. We’ll need the GNU debugger in order to make PHP crash, then investigate why it crashed.
+
+But before even attempting this, we’ll have to properly configure PHP. php.ini and the likes.
+
+You’ll need, at least, to increase the `memory_limit`, to enable xdebug and to set `xdebug.mode` to `coverage`. If you are still reading me, you’ll probably have guessed (correctly) that I’ll tell you to **R**ead **T**he **F**ine **M**anual, on how to do such things. Yes, I know that you can spam `-d` flags to PHP, however I highly suggest to craft a `php.ini` and an `xdebug.ini` (and each and every other .ini for each and every other extension you need configured).
+
+And (not only that, but mostly) that is the reason, you will definately need a `docker-compose.yaml`. You’ll have to mount your project at `/var/www/html` and you’ll have to mount the directory containing your PHP configuration at `/usr/local/etc/php/conf.d/`
+
+Is your container ready yet?
+
+Open a shell into it…
+
+<hr/>
+
+I cannot say that I am a debugging expert, nor that I navigate through gdb’s commands with ease. I usually work on a _need-to-know_ basis; Google is my best friend. So, unfortunately, this cannot be a gdb tutorial. But I can, at this point, give you some insight into what’s going on.
+
+Assuming that everything went fine, your cursor should be blinking and waiting to do thy bidding. Type `gdb php` in order to load PHP into the debugger and watch the cursor blink again. We’ll actually need to run something. In my case I have to `r ./vendor/bin/phpunit --coverage-clover=clover.xml`
+
+> # And it crashed… 🤬
+
+Now, we’ll have to figure out why it crashes. Let’s type `bt` in order to examine the [stack](https://en.wikipedia.org/wiki/Call_stack)… Get a [cheat sheet](https://gist.github.com/rkubik/b96c23bd8ed58333de37f2b8cd052c30#file-cheat_sheet-txt-L18) and happy hunting!
+
+<hr/>
+
+It took me hours to understand what the problem was. PHP was actually trying to perform an invalid operation. I not only had to examine the stack and functions’ parameters. I had PHP’s source code, side by side with my debugger, trying to understand what each line was doing.
+
+Eventually, after hours and hours of examing the values of structures and pointers, reading through C code and trying to follow the execution path, I pinpointed the source of all evil. It was a relatively safe `shell_exec`, hidden in a destructor. It seems that, somehow; don’t ask, I never understood; PHP tried to execute this destructor and then all hell broke loose.
+
+Moral of the story? I should have listened to [Psalm](https://psalm.dev/), when it warned me that this piece of code was [forbidden](https://psalm.dev/docs/running_psalm/issues/ForbiddenCode/). But more importantly, when standard PHP debugging tools fail, you now know how to build custom PHP debug binaries, use GDB to trace crashes, and debug PHP internals at the C level.
+
+## Key Takeaways
+
+- **Custom PHP debug binaries** are essential for debugging crashes in PHP internals
+- **Docker** provides an isolated environment for building and debugging PHP from source
+- **GDB (GNU Debugger)** allows you to trace crashes and examine the call stack at the C level
+- **Xdebug** must be compiled from source when building custom PHP binaries
+- **Static analysis tools** like Psalm can help prevent these issues before they occur
+- When PHPUnit crashes silently, the problem often lies in PHP's C internals, not your PHP code
+
+This extreme PHP debugging approach isn't for everyday issues, but when you're facing crashes that standard PHP debugging tools can't handle, building custom PHP debug binaries and using GDB is your path forward.

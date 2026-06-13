@@ -1,0 +1,29 @@
+# Binary Brew
+
+> Brewing stories of software, systems, and the souls behind the code
+
+Binary Brew is a technical blog by Alexandros Koutroulis — Senior Software Engineer, Engineering Manager, and someone who has been writing code since 1995. Posts live at the intersection of the technical and the human: deep debugging, reverse engineering, security, team psychology, and software leadership written from 30 years of hands-on practice.
+
+## Blog Posts
+
+- [The Power of Post-Mortems](https://mistericy.github.io/blog/the-power-of-post-mortems/): Why post-mortems matter beyond the template: accountability, catharsis, what belongs in the doc, and how stakeholder review plus owned action items beat paper theater.
+- [Security Is Not a Feature. It's the Foundation for Apps](https://mistericy.github.io/blog/security-is-not-a-feature-its-the-floor/): Frontend checks without backend authorization spell broken access control—OWASP A01, IDOR, CWEs, rate limits, and why security is the floor.
+- [Whether You CAN Is Learnable. The Issue Is Whether You WANT To.](https://mistericy.github.io/blog/whether-you-can-is-learnable-the-issue-is-whether-you-want-to/): Standard management advice says show them the path and they'll want it. Some people genuinely don't want management. Making them try anyway is a failure of leadership—and the no-shame exit ramp isn't a consolation prize. It's the design.
+- [Until It Bleeds: Hive Mind for Complex Features](https://mistericy.github.io/blog/until-it-bleeds-hive-mind-programming/): Stop bleeding alone on complex features. How hive mind programming transforms impossible mountains into walkable hills through distributed cognition and chaos coordination.
+- [Beat Procrastination, Frustration & Code Stagnation](https://mistericy.github.io/blog/overcoming-procrastination-frustration-code-stagnation/): Frustrated by code and endless procrastination? A raw look at overcoming productivity roadblocks, developer frustration, and breaking through code stagnation with practical strategies.
+- [Reverse Engineering Hexplore: Game Texts](https://mistericy.github.io/blog/reverse-engineering-hexplore-2/): Dive into extracting, decoding, and reconstructing in-game text data from Hexplore. Learn methods for parsing string tables, mapping offsets, and integrating translated or modified dialogues using reverse engineering techniques.
+- [Reverse Engineering Hexplore: My Journey Begins](https://mistericy.github.io/blog/reverse-engineering-hexplore-1/): Join the reverse engineering journey of Hexplore — exploring x86 assembly, Ghidra, Win32 APIs, and game data formats to resurrect a 1990s classic. Learn how to dig into old binaries and rebuild lost code.
+- [Extreme PHP Debugging: GDB & Docker Guide](https://mistericy.github.io/blog/extreme-debugging-in-php/): When PHPUnit crashes with exit code 143 and coverage generation fails silently, standard debugging tools won\'t help. Learn how to build custom PHP debug binaries, use GDB to trace crashes, and debug deep PHP internals using Docker, custom builds, and advanced debugging techniques.
+
+## About
+
+- [About Alexandros Koutroulis](https://mistericy.github.io/about/): Senior Software Engineer and Engineering Manager at Epignosis (eFront). 10+ years professional experience, nearly 30 years coding. Specializing in backend engineering, debugging, reverse engineering, and SaaS platform development.
+
+## Feeds & Discovery
+
+- [RSS Feed](https://mistericy.github.io/rss.xml): Subscribe to all posts in RSS 2.0 format
+- [Sitemap](https://mistericy.github.io/sitemap-index.xml): Full site structure
+
+## Optional
+
+- [llms-full.txt](https://mistericy.github.io/llms-full.txt): Complete post content for deep LLM consumption

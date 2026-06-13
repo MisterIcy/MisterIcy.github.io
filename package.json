@@ -9,6 +9,7 @@
     "astro": "astro",
     "draft": "node scripts/create-draft.js",
     "generate-cover": "tsx scripts/generate-cover.ts",
+    "generate-llms": "node scripts/generate-llms.mjs",
     "tts-post": "tsx scripts/transcribe-post.ts"
   },
   "dependencies": {
