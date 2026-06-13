@@ -17,7 +17,7 @@
     "@astrojs/rss": "^4.0.15",
     "@astrojs/sitemap": "^3.7.0",
     "@elevenlabs/elevenlabs-js": "^2.40.0",
-    "astro": "^5.16.11",
+    "astro": "^6.1.10",
     "dotenv": "^17.3.1",
     "gray-matter": "^4.0.3",
     "openai": "^6.32.0",
