@@ -12,39 +12,43 @@ jobs:
     # Only run when the deployment succeeded
     if: ${{ github.event.workflow_run.conclusion == 'success' }}
     steps:
-      - name: Build sitemap URL list
-        id: urls
+      - name: Fetch sitemap and submit to IndexNow
+        env:
+          INDEXNOW_KEY: ${{ secrets.INDEXNOW_KEY }}
         run: |
           # Wait briefly for GitHub Pages CDN to propagate
           sleep 30
+
+          # Fetch the live leaf sitemap and extract URLs as a compact JSON array.
+          # jq -c produces single-line JSON, avoiding multi-line $GITHUB_OUTPUT issues.
           URLS=$(curl -s https://mistericy.github.io/sitemap-0.xml \
             | grep -oP '(?<=<loc>)[^<]+' \
             | head -50 \
             | jq -R . \
-            | jq -s .)
-          echo "urls=$URLS" >> $GITHUB_OUTPUT
+            | jq -s -c .)
 
-      - name: Submit URLs to IndexNow
-        env:
-          INDEXNOW_KEY: ${{ secrets.INDEXNOW_KEY }}
-        run: |
-          URLS='${{ steps.urls.outputs.urls }}'
           if [ -z "$URLS" ] || [ "$URLS" = "null" ] || [ "$URLS" = "[]" ]; then
             echo "No URLs found in sitemap — skipping IndexNow submission"
             exit 0
           fi
+
+          echo "Submitting $(echo "$URLS" | jq 'length') URL(s) to IndexNow..."
+
           PAYLOAD=$(jq -n \
             --arg host "mistericy.github.io" \
             --arg key "$INDEXNOW_KEY" \
             --arg keyLocation "https://mistericy.github.io/${INDEXNOW_KEY}.txt" \
             --argjson urlList "$URLS" \
             '{host: $host, key: $key, keyLocation: $keyLocation, urlList: $urlList}')
+
           HTTP_STATUS=$(curl -s -o /tmp/indexnow_response.txt -w "%{http_code}" \
             -X POST https://api.indexnow.org/indexnow \
             -H 'Content-Type: application/json' \
             -d "$PAYLOAD")
+
           echo "IndexNow API response: HTTP $HTTP_STATUS"
           cat /tmp/indexnow_response.txt
+
           if [ "$HTTP_STATUS" = "200" ] || [ "$HTTP_STATUS" = "202" ]; then
             echo "Success — Bing, Yandex, and Naver have been notified"
           else
