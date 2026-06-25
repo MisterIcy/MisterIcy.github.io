@@ -2,3 +2,6 @@ node_modules/
 db.json
 dist
 .DS_Store
+
+# Agent authoring journals — private working memory, never committed
+.journal/
