@@ -5,3 +5,4 @@ dist
 
 # Agent authoring journals — private working memory, never committed
 .journal/
+.astro/
