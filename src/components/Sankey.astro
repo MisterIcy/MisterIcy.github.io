@@ -1,0 +1,371 @@
+---
+/**
+ * Interactive D3 Sankey diagram.
+ *
+ * Renders a client-side, responsive Sankey flow with hover-highlighting and
+ * value tooltips. Multiple instances can live on the same page; each carries
+ * its own dataset in a sibling <script type="application/json"> block, and the
+ * (single, bundled) client script wires up every [data-sankey-root] it finds.
+ *
+ * `group` on a node tints it (and the links leaving it). Known groups:
+ *   accent | trust | flag | positive | neutral | negative
+ * Anything else falls back to the accent colour.
+ */
+interface SankeyNode {
+	name: string;
+	group?: string;
+}
+
+interface SankeyLink {
+	source: string;
+	target: string;
+	value: number;
+}
+
+interface Props {
+	id: string;
+	data: { nodes: SankeyNode[]; links: SankeyLink[] };
+	caption?: string;
+	height?: number;
+}
+
+const { id, data, caption, height = 420 } = Astro.props;
+---
+
+<figure class="not-prose sankey-figure" data-sankey-id={id}>
+	<div
+		class="sankey-root"
+		data-sankey-root
+		style={`--sankey-height: ${height}px`}
+		role="img"
+		aria-label={caption ?? 'Sankey flow diagram'}
+	>
+	</div>
+	{caption && <figcaption class="sankey-caption">{caption}</figcaption>}
+	<script type="application/json" data-sankey-data set:html={JSON.stringify(data)} />
+</figure>
+
+<style>
+	.sankey-figure {
+		margin: 2rem 0;
+	}
+
+	.sankey-root {
+		position: relative;
+		width: 100%;
+		min-height: var(--sankey-height, 420px);
+	}
+
+	.sankey-root :global(svg) {
+		width: 100%;
+		height: auto;
+		display: block;
+		overflow: visible;
+	}
+
+	.sankey-root :global(.sankey-link) {
+		fill: none;
+		stroke-opacity: 0.32;
+		transition: stroke-opacity 150ms ease;
+	}
+
+	.sankey-root :global(.sankey-link.is-faded) {
+		stroke-opacity: 0.06;
+	}
+
+	.sankey-root :global(.sankey-link.is-active) {
+		stroke-opacity: 0.7;
+	}
+
+	.sankey-root :global(.sankey-node rect) {
+		stroke: rgba(15, 23, 42, 0.85);
+		stroke-width: 1;
+		cursor: pointer;
+		transition: opacity 150ms ease;
+	}
+
+	.sankey-root :global(.sankey-node.is-faded) {
+		opacity: 0.25;
+	}
+
+	.sankey-root :global(.sankey-node text) {
+		fill: #e2e8f0;
+		font-size: 12px;
+		font-weight: 500;
+		pointer-events: none;
+		paint-order: stroke;
+		stroke: rgba(2, 6, 23, 0.85);
+		stroke-width: 3px;
+		stroke-linejoin: round;
+	}
+
+	.sankey-root :global(.sankey-node:focus-visible rect) {
+		outline: 2px solid #06b6d4;
+		outline-offset: 2px;
+	}
+
+	.sankey-tooltip {
+		position: absolute;
+		z-index: 20;
+		pointer-events: none;
+		padding: 0.35rem 0.6rem;
+		font-size: 0.78rem;
+		line-height: 1.3;
+		color: #f1f5f9;
+		background: rgba(15, 23, 42, 0.96);
+		border: 1px solid rgba(148, 163, 184, 0.35);
+		border-radius: 0.4rem;
+		box-shadow: 0 6px 20px rgba(0, 0, 0, 0.45);
+		white-space: nowrap;
+		opacity: 0;
+		transform: translate(-50%, -120%);
+		transition: opacity 120ms ease;
+	}
+
+	.sankey-tooltip.is-visible {
+		opacity: 1;
+	}
+
+	.sankey-tooltip strong {
+		color: #38bdf8;
+	}
+
+	.sankey-caption {
+		margin-top: 0.75rem;
+		font-size: 0.85rem;
+		color: #94a3b8;
+		text-align: center;
+	}
+</style>
+
+<script>
+	import { select } from 'd3-selection';
+	import {
+		sankey as d3Sankey,
+		sankeyLinkHorizontal,
+		sankeyJustify,
+	} from 'd3-sankey';
+
+	type RawNode = { name: string; group?: string };
+	type RawLink = { source: string; target: string; value: number };
+	type RawData = { nodes: RawNode[]; links: RawLink[] };
+
+	const GROUP_COLORS: Record<string, string> = {
+		accent: '#06b6d4',
+		trust: '#f59e0b',
+		flag: '#a855f7',
+		positive: '#22c55e',
+		neutral: '#64748b',
+		negative: '#ef4444',
+	};
+	const DEFAULT_COLOR = '#06b6d4';
+
+	function colorFor(group?: string): string {
+		return (group && GROUP_COLORS[group]) || DEFAULT_COLOR;
+	}
+
+	function renderSankey(root: HTMLElement, raw: RawData) {
+		const width = root.clientWidth || 640;
+		const cssHeight = parseInt(
+			getComputedStyle(root).getPropertyValue('--sankey-height'),
+			10,
+		);
+		const height = Number.isFinite(cssHeight) && cssHeight > 0 ? cssHeight : 420;
+		const margin = { top: 10, right: 12, bottom: 10, left: 12 };
+
+		// Index nodes by name, then build the graph structure d3-sankey expects.
+		const nodeByName = new Map<string, number>();
+		const nodes = raw.nodes.map((n, i) => {
+			nodeByName.set(n.name, i);
+			return { ...n };
+		});
+		const links = raw.links.map((l) => ({
+			source: nodeByName.get(l.source)!,
+			target: nodeByName.get(l.target)!,
+			value: l.value,
+		}));
+
+		const layout = d3Sankey<any, any>()
+			.nodeWidth(16)
+			.nodePadding(14)
+			.nodeAlign(sankeyJustify)
+			.extent([
+				[margin.left, margin.top],
+				[width - margin.right, height - margin.bottom],
+			]);
+
+		const graph = layout({
+			nodes: nodes.map((d) => ({ ...d })),
+			links: links.map((d) => ({ ...d })),
+		});
+
+		// Clear any previous render (resize / re-entry).
+		select(root).select('svg').remove();
+
+		const svg = select(root)
+			.append('svg')
+			.attr('viewBox', `0 0 ${width} ${height}`)
+			.attr('preserveAspectRatio', 'xMidYMid meet');
+
+		// Links — coloured by their originating node's group.
+		const link = svg
+			.append('g')
+			.selectAll('path')
+			.data(graph.links)
+			.join('path')
+			.attr('class', 'sankey-link')
+			.attr('d', sankeyLinkHorizontal())
+			.attr('stroke', (d: any) => colorFor(d.source.group))
+			.attr('stroke-width', (d: any) => Math.max(1, d.width));
+
+		// Nodes.
+		const node = svg
+			.append('g')
+			.selectAll('g')
+			.data(graph.nodes)
+			.join('g')
+			.attr('class', 'sankey-node')
+			.attr('tabindex', 0)
+			.attr('role', 'listitem');
+
+		node
+			.append('rect')
+			.attr('x', (d: any) => d.x0)
+			.attr('y', (d: any) => d.y0)
+			.attr('width', (d: any) => d.x1 - d.x0)
+			.attr('height', (d: any) => Math.max(1, d.y1 - d.y0))
+			.attr('fill', (d: any) => colorFor(d.group));
+
+		node
+			.append('text')
+			.attr('x', (d: any) => (d.x0 < width / 2 ? d.x1 + 6 : d.x0 - 6))
+			.attr('y', (d: any) => (d.y1 + d.y0) / 2)
+			.attr('dy', '0.35em')
+			.attr('text-anchor', (d: any) => (d.x0 < width / 2 ? 'start' : 'end'))
+			.text((d: any) => d.name);
+
+		node.append('title').text((d: any) => `${d.name}\n${d.value}`);
+
+		// Tooltip element (one per root).
+		let tooltip = root.querySelector<HTMLDivElement>('.sankey-tooltip');
+		if (!tooltip) {
+			tooltip = document.createElement('div');
+			tooltip.className = 'sankey-tooltip';
+			root.appendChild(tooltip);
+		}
+		const tip = tooltip;
+
+		function showTip(html: string, event: MouseEvent) {
+			const rect = root.getBoundingClientRect();
+			tip.innerHTML = html;
+			tip.style.left = `${event.clientX - rect.left}px`;
+			tip.style.top = `${event.clientY - rect.top}px`;
+			tip.classList.add('is-visible');
+		}
+		function hideTip() {
+			tip.classList.remove('is-visible');
+		}
+
+		const reduceMotion = window.matchMedia(
+			'(prefers-reduced-motion: reduce)',
+		).matches;
+
+		function highlightNode(d: any) {
+			const connected = new Set<any>();
+			d.sourceLinks.forEach((l: any) => connected.add(l));
+			d.targetLinks.forEach((l: any) => connected.add(l));
+			link.classed('is-active', (l: any) => connected.has(l));
+			link.classed('is-faded', (l: any) => !connected.has(l));
+			node.classed('is-faded', (n: any) => {
+				if (n === d) return false;
+				return ![...connected].some(
+					(l: any) => l.source === n || l.target === n,
+				);
+			});
+		}
+
+		function clearHighlight() {
+			link.classed('is-active', false).classed('is-faded', false);
+			node.classed('is-faded', false);
+		}
+
+		link
+			.on('mouseenter', function (event: MouseEvent, d: any) {
+				link.classed('is-faded', (l: any) => l !== d);
+				select(this).classed('is-active', true).classed('is-faded', false);
+				showTip(
+					`${d.source.name} <strong>&rarr;</strong> ${d.target.name}: <strong>${d.value}</strong>`,
+					event,
+				);
+			})
+			.on('mousemove', (event: MouseEvent, d: any) =>
+				showTip(
+					`${d.source.name} <strong>&rarr;</strong> ${d.target.name}: <strong>${d.value}</strong>`,
+					event,
+				),
+			)
+			.on('mouseleave', () => {
+				clearHighlight();
+				hideTip();
+			});
+
+		node
+			.on('mouseenter', function (event: MouseEvent, d: any) {
+				highlightNode(d);
+				showTip(`${d.name}: <strong>${d.value}</strong>`, event);
+			})
+			.on('mousemove', (event: MouseEvent, d: any) =>
+				showTip(`${d.name}: <strong>${d.value}</strong>`, event),
+			)
+			.on('mouseleave', () => {
+				clearHighlight();
+				hideTip();
+			})
+			.on('focus', function (_event: FocusEvent, d: any) {
+				highlightNode(d);
+			})
+			.on('blur', () => clearHighlight());
+
+		void reduceMotion;
+	}
+
+	function initRoot(root: HTMLElement) {
+		const dataEl = root.parentElement?.querySelector<HTMLScriptElement>(
+			'script[data-sankey-data]',
+		);
+		if (!dataEl?.textContent) return;
+		let raw: RawData;
+		try {
+			raw = JSON.parse(dataEl.textContent);
+		} catch {
+			return;
+		}
+
+		let frame = 0;
+		const draw = () => renderSankey(root, raw);
+		draw();
+
+		// Re-layout on width changes (debounced to a frame).
+		const ro = new ResizeObserver(() => {
+			cancelAnimationFrame(frame);
+			frame = requestAnimationFrame(draw);
+		});
+		ro.observe(root);
+	}
+
+	function init() {
+		document
+			.querySelectorAll<HTMLElement>('[data-sankey-root]')
+			.forEach((root) => {
+				if (root.dataset.sankeyInit) return;
+				root.dataset.sankeyInit = 'true';
+				initRoot(root);
+			});
+	}
+
+	if (document.readyState === 'loading') {
+		document.addEventListener('DOMContentLoaded', init);
+	} else {
+		init();
+	}
+</script>

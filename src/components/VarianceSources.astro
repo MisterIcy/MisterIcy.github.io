@@ -1,0 +1,196 @@
+---
+/**
+ * Variance sources — three toggles that inject interference into the human
+ * stream rendered by a sibling <PureVsHuman /> with a matching `channel`.
+ *
+ * The labels mirror the post's own language (and the manager-model Sankey's
+ * trust-group nodes): Personal state, Team dynamics, External circumstance.
+ * They communicate over the noiseBus; turning them on visibly widens the
+ * variance corridor on the right stream. All off, the stream still wanders.
+ */
+interface Props {
+	id: string;
+	/** Must match the <PureVsHuman channel="..."/> it drives. Defaults to id. */
+	channel?: string;
+	caption?: string;
+}
+
+const { id, channel, caption } = Astro.props;
+const ch = channel ?? id;
+
+const TOGGLES = [
+	{ key: 'personal', label: 'Personal state', hint: 'emotional, domestic, health' },
+	{ key: 'team', label: 'Team dynamics', hint: 'co-relational interference' },
+	{ key: 'external', label: 'External circumstance', hint: 'life outside the office' },
+] as const;
+---
+
+<figure class="not-prose variance-figure" data-variance-id={id}>
+	<div class="variance-root" data-variance-root data-channel={ch}>
+		<div class="variance-toggles" role="group" aria-label="Variance sources">
+			{TOGGLES.map((t) => (
+				<button type="button" class="variance-toggle" data-source={t.key} aria-pressed="false">
+					<span class="variance-dot" aria-hidden="true"></span>
+					<span class="variance-text">
+						<span class="variance-name">{t.label}</span>
+						<span class="variance-hint">{t.hint}</span>
+					</span>
+				</button>
+			))}
+		</div>
+		<p class="variance-status" data-variance-status aria-live="polite">
+			All sources off &mdash; the human stream calms, but never fully flattens.
+		</p>
+	</div>
+	{caption && <figcaption class="variance-caption">{caption}</figcaption>}
+</figure>
+
+<style>
+	.variance-figure {
+		margin: 1.25rem 0 2rem;
+	}
+
+	.variance-toggles {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.6rem;
+	}
+
+	.variance-toggle {
+		display: flex;
+		align-items: center;
+		gap: 0.6rem;
+		flex: 1 1 200px;
+		padding: 0.6rem 0.85rem;
+		text-align: left;
+		cursor: pointer;
+		border: 1px solid rgba(148, 163, 184, 0.25);
+		border-radius: 0.5rem;
+		background: rgba(15, 23, 42, 0.35);
+		color: #e2e8f0;
+		transition: border-color 150ms ease, background 150ms ease;
+	}
+
+	.variance-toggle:hover {
+		border-color: rgba(245, 158, 11, 0.55);
+	}
+
+	.variance-toggle:focus-visible {
+		outline: 2px solid #06b6d4;
+		outline-offset: 2px;
+	}
+
+	.variance-dot {
+		width: 0.85rem;
+		height: 0.85rem;
+		flex: 0 0 auto;
+		border-radius: 999px;
+		border: 2px solid #64748b;
+		background: transparent;
+		transition: background 150ms ease, border-color 150ms ease, box-shadow 150ms ease;
+	}
+
+	.variance-toggle[aria-pressed='true'] {
+		border-color: rgba(245, 158, 11, 0.7);
+		background: rgba(245, 158, 11, 0.1);
+	}
+
+	.variance-toggle[aria-pressed='true'] .variance-dot {
+		background: #f59e0b;
+		border-color: #f59e0b;
+		box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.2);
+	}
+
+	.variance-text {
+		display: flex;
+		flex-direction: column;
+		line-height: 1.25;
+	}
+
+	.variance-name {
+		font-size: 0.85rem;
+		font-weight: 600;
+	}
+
+	.variance-hint {
+		font-size: 0.72rem;
+		color: #94a3b8;
+	}
+
+	.variance-status {
+		margin: 0.85rem 0 0;
+		font-size: 0.85rem;
+		color: #94a3b8;
+		text-align: center;
+		min-height: 1.2em;
+	}
+
+	.variance-caption {
+		margin-top: 0.75rem;
+		font-size: 0.85rem;
+		color: #94a3b8;
+		text-align: center;
+	}
+</style>
+
+<script>
+	import { getNoise, setNoise, type NoiseState } from './noiseBus';
+
+	function initRoot(root: HTMLElement) {
+		const channel = root.dataset.channel || 'default';
+		const status = root.querySelector<HTMLElement>('[data-variance-status]');
+		const buttons = Array.from(
+			root.querySelectorAll<HTMLButtonElement>('.variance-toggle'),
+		);
+
+		const state: NoiseState = getNoise(channel);
+
+		const NAMES: Record<keyof NoiseState, string> = {
+			personal: 'Personal state',
+			team: 'Team dynamics',
+			external: 'External circumstance',
+		};
+
+		function render() {
+			buttons.forEach((b) => {
+				const key = b.dataset.source as keyof NoiseState;
+				b.setAttribute('aria-pressed', state[key] ? 'true' : 'false');
+			});
+			if (status) {
+				const on = (Object.keys(state) as (keyof NoiseState)[])
+					.filter((k) => state[k])
+					.map((k) => NAMES[k]);
+				status.innerHTML = on.length
+					? `Injecting interference: <strong style="color:#f59e0b">${on.join(', ')}</strong>.`
+					: 'All sources off &mdash; the human stream calms, but never fully flattens.';
+			}
+		}
+
+		buttons.forEach((b) => {
+			b.addEventListener('click', () => {
+				const key = b.dataset.source as keyof NoiseState;
+				state[key] = !state[key];
+				setNoise(channel, state);
+				render();
+			});
+		});
+
+		// Push initial state so a stream that is already listening syncs up.
+		setNoise(channel, state);
+		render();
+	}
+
+	function init() {
+		document.querySelectorAll<HTMLElement>('[data-variance-root]').forEach((root) => {
+			if (root.dataset.varianceInit) return;
+			root.dataset.varianceInit = 'true';
+			initRoot(root);
+		});
+	}
+
+	if (document.readyState === 'loading') {
+		document.addEventListener('DOMContentLoaded', init);
+	} else {
+		init();
+	}
+</script>

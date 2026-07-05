@@ -4,125 +4,277 @@ import BaseHead from '../components/BaseHead.astro';
 import SEOHead from '../components/SEOHead.astro';
 import Footer from '../components/Footer.astro';
 import Header from '../components/Header.astro';
-import { SITE_DESCRIPTION, SITE_TITLE } from '../consts';
+import { SITE_TITLE, SITE_DESCRIPTION, SITE_AUTHOR } from '../consts';
+import { getReadingStats } from '../lib/readingTime';
 
-const allPosts = await getCollection('blog');
 const isDev = import.meta.env.DEV;
+const allPosts = await getCollection('blog');
 const sortedPosts = allPosts
-	.filter((post) => isDev || !post.data.draft)
-	.sort((a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf());
-const latestPost = sortedPosts[0] ?? null;
+  .filter((p) => isDev || !p.data.draft)
+  .sort((a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf());
+
+const totalCommits = sortedPosts.length;
+const sinceYear =
+  sortedPosts.length > 0
+    ? new Date(sortedPosts[sortedPosts.length - 1].data.pubDate).getFullYear()
+    : 2022;
+
+// Home page shows the 4 most recent posts
+const previewPosts = sortedPosts.slice(0, 4);
+
+/**
+ * Deterministic 7-char hex "commit hash" derived from the post id.
+ * Consistent across renders — same post always gets the same hash.
+ */
+function shortHash(id: string): string {
+  let h = 0;
+  for (let i = 0; i < id.length; i++) {
+    h = (Math.imul(31, h) + id.charCodeAt(i)) | 0;
+  }
+  return Math.abs(h).toString(16).padStart(7, '0').slice(0, 7);
+}
+
+/** ISO date as YYYY-MM-DD */
+function isoDate(date: Date): string {
+  return date.toISOString().slice(0, 10);
+}
 ---
 
 <!doctype html>
 <html lang="en" class="dark">
-	<head>
-		<BaseHead title={SITE_TITLE} description={SITE_DESCRIPTION} />
-		<SEOHead
-			title={SITE_TITLE}
-			description={SITE_DESCRIPTION}
-			schema={{
-				type: ['WebSite', 'Organization'],
-				breadcrumbs: [{ name: 'Home', url: '/' }],
-			}}
-		/>
-	</head>
-	<body class="min-h-screen bg-bg-01 text-white">
-		<Header />
-		
-		<!-- Hero Section -->
-		<section class="bg-circuit relative py-24 md:py-32 px-4">
-			<div class="max-w-4xl mx-auto text-center relative z-10">
-				<h1 class="text-5xl md:text-7xl font-bold mb-6 text-white">
-					{SITE_TITLE}
-				</h1>
-				<p class="text-xl md:text-2xl text-muted mb-8 max-w-2xl mx-auto">
-					{SITE_DESCRIPTION}
-				</p>
-				
-				<!-- Terminal Animation -->
-				<div class="mt-12 bg-card border border-slate-700 rounded-lg overflow-hidden shadow-2xl max-w-3xl mx-auto text-left">
-					<!-- Terminal Title Bar -->
-					<div class="bg-slate-800 px-4 py-2 flex items-center justify-between border-b border-slate-700">
-						<div class="flex items-center gap-2">
-							<span class="w-3 h-3 rounded-full bg-red-500"></span>
-							<span class="w-3 h-3 rounded-full bg-yellow-500"></span>
-							<span class="w-3 h-3 rounded-full bg-green-500"></span>
-						</div>
-						<span class="text-xs text-muted font-mono font-medium">terminal</span>
-					</div>
-					
-					<!-- Terminal Content -->
-					<div class="p-6 font-mono text-sm md:text-base leading-relaxed text-left">
-						<div class="text-accent font-medium">user@binary-brew:~$ cat <span class="text-slate-300">latest-post.md</span></div>					
-						
-						{latestPost ? (
-							<a
-								href={`/blog/${latestPost.id}/`}
-								class="group mt-4 block rounded-md text-left no-underline transition-colors hover:text-accent focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
-								aria-label={`Read latest post: ${latestPost.data.title}`}
-							>
-								<div class="text-muted italic group-hover:text-accent">
-									# {latestPost.data.title}
-								</div>
-								{(latestPost.data.excerpt || latestPost.data.description) && (
-									<div class="mt-2 text-muted italic group-hover:text-slate-300">
-										{latestPost.data.excerpt || latestPost.data.description}
-									</div>
-								)}
-							</a>
-						) : (
-							<>
-								<div class="mt-4 text-muted italic">
-									# War stories and reflections...
-								</div>
-								<div class="mt-2 text-muted italic">
-									from debugging and DevOps to psychology, teams, and beyond.
-								</div>
-							</>
-						)}
-						<div class="mt-4">
-							<span class="text-accent font-medium">user@binary-brew:~$</span>
-							<span class="animate-pulse text-accent">_</span>
-						</div>
-					</div>
-				</div>
-			</div>
-		</section>
+  <head>
+    <BaseHead title={SITE_TITLE} description={SITE_DESCRIPTION} />
+    <SEOHead
+      title={SITE_TITLE}
+      description={SITE_DESCRIPTION}
+      schema={{
+        type: ['WebSite', 'Organization'],
+        breadcrumbs: [{ name: 'Home', url: '/' }],
+      }}
+    />
+  </head>
 
-		<!-- About Preview Section -->
-		<main class="max-w-4xl mx-auto px-4 py-16">
-			<section class="card bg-card border border-slate-700 rounded-lg p-8 md:p-12">
-				<h2 class="text-3xl md:text-4xl font-bold mb-6 text-white">
-					About Binary Brew
-				</h2>
-				<div class="prose-custom text-slate-300 space-y-4">
-					<p class="text-lg leading-relaxed">
-						Welcome to Binary Brew, where I share war stories and reflections from the trenches of software development. 
-						This is a space for exploring the intersection of code, systems, and the human side of technology.
-					</p>
-					<p class="text-lg leading-relaxed">
-						From debugging nightmares to DevOps adventures, from team dynamics to the psychology behind great software, 
-						I document the journey of building, breaking, and learning in the world of technology.
-					</p>
-					<p class="text-lg leading-relaxed text-muted">
-						Join me as I brew stories of software, systems, and the souls behind the code.
-					</p>
-				</div>
-				<div class="mt-8">
-					<a 
-						href="/about" 
-						class="inline-flex items-center px-6 py-3 bg-accent hover:bg-cyan-400 text-white font-semibold rounded-lg transition-colors duration-200"
-					>
-						Learn More
-						<svg class="ml-2 w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
-						</svg>
-					</a>
-				</div>
-			</section>
-		</main>
+  <body class="min-h-screen bg-bg-01 text-body antialiased">
 
-		<Footer />
-	</body>
+    <!-- Skip to main content — visible on focus for keyboard / AT users -->
+    <a
+      href="#main-content"
+      class="sr-only focus:not-sr-only focus:fixed focus:left-3 focus:top-3 focus:z-50 focus:rounded-lg focus:bg-accent focus:px-4 focus:py-2 focus:font-semibold focus:text-bg-01 focus:outline-none"
+    >
+      Skip to content
+    </a>
+
+    <Header />
+
+    <main id="main-content" class="mx-auto max-w-4xl px-5 py-12 sm:py-16 md:px-6">
+
+      <!-- ── Masthead ───────────────────────────────────────────────────── -->
+      <div class="mb-12">
+        <p class="break-words font-mono text-xs text-muted">
+          <span class="text-accent">$</span> git log --all --since=&quot;{sinceYear}&quot; --pretty=brew
+        </p>
+
+        <h1
+          class="mt-3 font-display text-5xl font-extrabold leading-none tracking-tight text-ink sm:text-6xl"
+        >
+          The Field Log
+        </h1>
+
+        <p
+          class="mt-4 max-w-[65ch] text-muted"
+          style="font-size:1.375rem;line-height:1.85;letter-spacing:0.018em"
+        >
+          Every post is a commit against my own understanding. Newest first — war stories from the
+          trenches, in the order they happened.
+        </p>
+
+        <!-- Stats chips -->
+        <div class="mt-5 flex flex-wrap gap-2 font-mono text-xs">
+          <span class="rounded-full border border-line px-3 py-1 text-body">
+            {totalCommits} commit{totalCommits !== 1 ? 's' : ''}
+          </span>
+          <span class="rounded-full border border-line px-3 py-1 text-body">
+            branch: <span class="text-accent">main</span>
+          </span>
+          <span class="rounded-full border border-line px-3 py-1 text-body">
+            since {sinceYear}
+          </span>
+        </div>
+      </div>
+
+      <!-- ── Commit graph ───────────────────────────────────────────────── -->
+      <ol
+        class="relative list-none"
+        aria-label="Recent posts"
+      >
+        <!-- Decorative vertical rail — aria-hidden, never the sole depth cue -->
+        <span
+          aria-hidden="true"
+          class="absolute bottom-6 top-3 w-px bg-gradient-to-b from-accent/60 via-line to-transparent"
+          style="left:0.9rem"
+        ></span>
+
+        {previewPosts.map((post, index) => {
+          const hash = shortHash(post.id);
+          const date = isoDate(new Date(post.data.pubDate));
+          const stats = getReadingStats(post.body ?? '');
+          const excerpt = post.data.excerpt ?? post.data.description;
+          const isHead = index === 0;
+
+          return (
+            <li
+              class={[
+                'entry group',
+                'grid gap-x-3 md:gap-x-5',
+                isHead ? 'mb-10' : 'mb-8',
+              ].join(' ')}
+              style="grid-template-columns:1.8rem minmax(0,1fr)"
+            >
+              {/* ── Node column ── */}
+              <div class="relative">
+                {isHead ? (
+                  /* HEAD node — accent fill + glow ring */
+                  <span
+                    aria-hidden="true"
+                    class="node-head absolute h-4 w-4 rounded-full bg-accent ring-2 ring-accent/40"
+                    style="left:50%;top:1.6rem;transform:translateX(-50%)"
+                  ></span>
+                ) : (
+                  /* Default node — hollow with border */
+                  <span
+                    aria-hidden="true"
+                    class="node absolute h-3.5 w-3.5 rounded-full bg-bg-01"
+                    style="left:50%;top:0.375rem;transform:translateX(-50%);box-shadow:0 0 0 1.5px #06b6d4, 0 0 0 5.5px #0b1220"
+                  ></span>
+                )}
+              </div>
+
+              {/* ── Content column ── */}
+              {isHead ? (
+                /* ── Featured HEAD card ── */
+                <div
+                  class={[
+                    'relative rounded-2xl border bg-gradient-to-br from-card to-bg-02 p-5 sm:p-6',
+                    'border-accent/30',
+                    // card-level focus ring so keyboard users always see an indicator
+                    'focus-within:ring-2 focus-within:ring-accent focus-within:ring-offset-2 focus-within:ring-offset-bg-01',
+                    // hover: node glow handled by sibling CSS below
+                  ].join(' ')}
+                >
+                  <div class="flex flex-wrap items-center gap-x-3 gap-y-1 font-mono text-xs text-muted">
+                    <span class="text-accent2">{hash}</span>
+                    <span class="rounded bg-accent/15 px-1.5 py-0.5 text-accent">HEAD → main</span>
+                    {post.data.category && (
+                      <span class="rounded bg-white/5 px-1.5 py-0.5 text-body">
+                        {post.data.category}
+                      </span>
+                    )}
+                    <time datetime={date}>{date}</time>
+                  </div>
+
+                  <h2
+                    class="headline mt-3 font-display text-2xl font-extrabold leading-tight tracking-tight text-ink transition-colors group-hover:text-accent2 sm:text-3xl"
+                  >
+                    <a
+                      href={`/blog/${post.id}/`}
+                      class="after:absolute after:inset-0 focus-visible:outline-none"
+                    >
+                      {post.data.title}
+                    </a>
+                  </h2>
+
+                  {excerpt && (
+                    <p
+                      class="mt-3 max-w-[65ch] text-body"
+                      style="font-size:1.375rem;line-height:1.85;letter-spacing:0.018em"
+                    >
+                      {excerpt}
+                    </p>
+                  )}
+
+                  <p class="mt-4 font-mono text-xs text-muted">
+                    {SITE_AUTHOR.name} · {stats.minutes} min read · {stats.words.toLocaleString()} words
+                  </p>
+                </div>
+              ) : (
+                /* ── Compact entry ── */
+                <div
+                  class={[
+                    'relative',
+                    'focus-within:ring-2 focus-within:ring-accent focus-within:ring-offset-2 focus-within:ring-offset-bg-01 rounded-lg',
+                  ].join(' ')}
+                >
+                  <div class="font-mono text-xs text-muted">
+                    <span class="text-accent2">{hash}</span>
+                    {post.data.category && (
+                      <> · <span class="text-body">{post.data.category}</span></>
+                    )}
+                    {' · '}
+                    <time datetime={date}>{date}</time>
+                  </div>
+
+                  <h3
+                    class="headline mt-1.5 font-display text-xl font-bold leading-tight tracking-tight text-ink transition-colors group-hover:text-accent2 sm:text-2xl"
+                  >
+                    <a
+                      href={`/blog/${post.id}/`}
+                      class="after:absolute after:inset-0 focus-visible:outline-none"
+                    >
+                      {post.data.title}
+                    </a>
+                  </h3>
+
+                  {excerpt && (
+                    <p
+                      class="mt-2 max-w-[65ch] text-muted"
+                      style="font-size:1.0rem;line-height:1.7;letter-spacing:0.018em"
+                    >
+                      {excerpt}
+                    </p>
+                  )}
+
+                  <p class="mt-2 font-mono text-xs text-muted">{stats.minutes} min read</p>
+                </div>
+              )}
+            </li>
+          );
+        })}
+      </ol>
+
+      <!-- ── View full log ──────────────────────────────────────────────── -->
+      {totalCommits > previewPosts.length && (
+        <div class="mt-6 pl-[2.05rem]">
+          <a
+            href="/blog"
+            class="font-mono text-sm text-accent transition-colors hover:text-accent2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-bg-01 rounded"
+          >
+            → view full log ({totalCommits} commits)
+          </a>
+        </div>
+      )}
+
+    </main>
+
+    <Footer />
+
+  </body>
 </html>
+
+<style>
+  /* Node hover/focus effects — scoped to this page */
+  .entry:hover .node,
+  .entry:focus-within .node {
+    background-color: #22d3ee; /* accent2 */
+    box-shadow:
+      0 0 0 4px #0b1220,
+      0 0 14px 2px color-mix(in oklab, #06b6d4 60%, transparent);
+  }
+
+  .entry:hover .node-head,
+  .entry:focus-within .node-head {
+    background-color: #22d3ee;
+    box-shadow:
+      0 0 0 4px #0b1220,
+      0 0 18px 4px color-mix(in oklab, #06b6d4 70%, transparent);
+  }
+</style>

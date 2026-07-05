@@ -1,0 +1,335 @@
+---
+/**
+ * Pure vs. Human function — two live signal streams.
+ *
+ * Left stream is a clean, flat deterministic output ("Pure function"); right
+ * stream wanders ("Human function") with a shaded variance corridor. Both share
+ * a synchronised input pulse on the left — same input, different output.
+ *
+ * The right stream's amplitude is driven by a sibling <VarianceSources /> with a
+ * matching `channel`. They talk over a tiny window event bus (see noiseBus.ts),
+ * so mount order does not matter and a late-mounting stream replays the last
+ * toggle state. When all sources are off, the human stream calms but never
+ * fully flattens — it stays non-deterministic by nature.
+ *
+ * Conventions mirror Sankey.astro: viewBox SVG, ResizeObserver re-layout,
+ * prefers-reduced-motion fallback, repo GROUP_COLORS.
+ */
+interface Props {
+	id: string;
+	/** Links this stream to a <VarianceSources channel="..."/>. Defaults to id. */
+	channel?: string;
+	caption?: string;
+	height?: number;
+}
+
+const { id, channel, caption, height = 150 } = Astro.props;
+const ch = channel ?? id;
+---
+
+<figure class="not-prose stream-figure" data-stream-id={id}>
+	<div class="stream-root" data-stream-root data-channel={ch} style={`--stream-height: ${height}px`}>
+		<div class="stream-cell" data-stream="pure" role="img" aria-label="Pure function: a flat, deterministic output stream">
+			<span class="stream-label stream-label--pure">Pure function</span>
+		</div>
+		<div class="stream-cell" data-stream="human" role="img" aria-label="Human function: a noisy, drifting output stream with variance">
+			<span class="stream-label stream-label--human">Human function</span>
+		</div>
+	</div>
+	{caption && <figcaption class="stream-caption">{caption}</figcaption>}
+</figure>
+
+<style>
+	.stream-figure {
+		margin: 2rem 0;
+	}
+
+	.stream-root {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 1rem;
+	}
+
+	.stream-cell {
+		position: relative;
+		flex: 1 1 240px;
+		min-width: 0;
+		border: 1px solid rgba(148, 163, 184, 0.18);
+		border-radius: 0.5rem;
+		background: rgba(15, 23, 42, 0.35);
+		padding: 0.5rem 0.25rem 0.25rem;
+	}
+
+	.stream-cell :global(svg) {
+		width: 100%;
+		height: auto;
+		display: block;
+		overflow: visible;
+	}
+
+	.stream-label {
+		display: block;
+		padding: 0 0.5rem 0.25rem;
+		font-size: 0.78rem;
+		font-weight: 600;
+		letter-spacing: 0.02em;
+	}
+
+	.stream-label--pure {
+		color: #22c55e;
+	}
+
+	.stream-label--human {
+		color: #f59e0b;
+	}
+
+	.stream-caption {
+		margin-top: 0.75rem;
+		font-size: 0.85rem;
+		color: #94a3b8;
+		text-align: center;
+	}
+</style>
+
+<script>
+	import { select } from 'd3-selection';
+	import { scaleLinear } from 'd3-scale';
+	import { line, area, curveBasis } from 'd3-shape';
+	import { randomNormal } from 'd3-random';
+	import { getNoise, onNoise, type NoiseState } from './noiseBus';
+
+	// Repo palette.
+	const PURE = '#22c55e'; // positive green
+	const HUMAN = '#f59e0b'; // trust amber
+	const BAND = 'rgba(239, 68, 68, 0.15)'; // negative red, transparent
+	const GRID = 'rgba(148, 163, 184, 0.18)';
+	const PULSE = '#06b6d4'; // accent cyan — the shared input
+
+	const N = 200; // samples in the rolling window
+	const Y_DOMAIN = 1.25;
+	const norm = randomNormal(0, 1);
+
+	type SourceKey = keyof NoiseState;
+	// Each source is an Ornstein–Uhlenbeck process: temporally coherent wander,
+	// so the line drifts organically instead of flickering frame to frame.
+	interface OU {
+		value: number;
+		theta: number; // mean reversion (higher = tighter)
+		sigma: number; // volatility
+	}
+	function step(ou: OU) {
+		ou.value = ou.value * (1 - ou.theta) + ou.sigma * norm();
+		return ou.value;
+	}
+
+	function makeProcesses() {
+		return {
+			residual: { value: 0, theta: 0.05, sigma: 0.05 } as OU, // always on
+			personal: { value: 0, theta: 0.02, sigma: 0.13 } as OU,
+			team: { value: 0, theta: 0.04, sigma: 0.1 } as OU,
+			external: { value: 0, theta: 0.015, sigma: 0.16 } as OU,
+		};
+	}
+
+	function clamp(v: number) {
+		return Math.max(-Y_DOMAIN + 0.05, Math.min(Y_DOMAIN - 0.05, v));
+	}
+
+	function initRoot(root: HTMLElement) {
+		const channel = root.dataset.channel || 'default';
+		const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+		const pureCell = root.querySelector<HTMLElement>('[data-stream="pure"]')!;
+		const humanCell = root.querySelector<HTMLElement>('[data-stream="human"]')!;
+		const cssHeight = parseInt(getComputedStyle(root).getPropertyValue('--stream-height'), 10);
+		const H = Number.isFinite(cssHeight) && cssHeight > 0 ? cssHeight : 150;
+		const padY = 14;
+
+		let noise = getNoise(channel);
+
+		const procs = makeProcesses();
+		const buf = new Array<number>(N).fill(0); // human stream history
+
+		// Build a static reference frame for reduced-motion / first paint. Its
+		// amplitude reflects the active sources so toggles are still legible
+		// without animation.
+		function seedStatic() {
+			let amp = 0.22;
+			if (noise.personal) amp += 0.3;
+			if (noise.team) amp += 0.28;
+			if (noise.external) amp += 0.34;
+			for (let i = 0; i < N; i++) {
+				buf[i] = clamp(
+					amp * Math.sin(i / 9) +
+						amp * 0.5 * Math.sin(i / 3.3 + 1.7) +
+						(noise.external ? 0.22 * Math.sin(i / 2.1) : 0),
+				);
+			}
+		}
+
+		interface Cell {
+			el: HTMLElement;
+			width: number;
+			x: ReturnType<typeof scaleLinear>;
+			y: ReturnType<typeof scaleLinear>;
+			path: any;
+			band?: any;
+			pulse: any;
+		}
+
+		function buildCell(el: HTMLElement, color: string): Cell {
+			select(el).select('svg').remove();
+			const width = el.clientWidth || 280;
+			const svg = select(el)
+				.append('svg')
+				.attr('viewBox', `0 0 ${width} ${H}`)
+				.attr('preserveAspectRatio', 'none');
+
+			const x = scaleLinear().domain([0, N - 1]).range([2, width - 2]);
+			const y = scaleLinear().domain([-Y_DOMAIN, Y_DOMAIN]).range([H - padY, padY]);
+
+			// Centre baseline.
+			svg
+				.append('line')
+				.attr('x1', 0)
+				.attr('x2', width)
+				.attr('y1', y(0))
+				.attr('y2', y(0))
+				.attr('stroke', GRID)
+				.attr('stroke-dasharray', '2 4');
+
+			const band = el.dataset.stream === 'human'
+				? svg.append('path').attr('fill', BAND).attr('stroke', 'none')
+				: undefined;
+
+			const path = svg
+				.append('path')
+				.attr('fill', 'none')
+				.attr('stroke', color)
+				.attr('stroke-width', 2)
+				.attr('stroke-linejoin', 'round')
+				.attr('stroke-linecap', 'round');
+
+			// Synchronised input pulse on the left edge.
+			const pulse = svg
+				.append('circle')
+				.attr('cx', x(0))
+				.attr('cy', y(0))
+				.attr('r', 4)
+				.attr('fill', PULSE);
+
+			return { el, width, x, y, path, band, pulse };
+		}
+
+		let pure = buildCell(pureCell, PURE);
+		let human = buildCell(humanCell, HUMAN);
+
+		const lineGen = (c: Cell) =>
+			line<number>().x((_d, i) => c.x(i)).y((d) => c.y(d)).curve(curveBasis);
+
+		function activeEnvelope() {
+			let e = 0.1;
+			if (noise.personal) e += 0.06;
+			if (noise.team) e += 0.06;
+			if (noise.external) e += 0.08;
+			return e;
+		}
+
+		function draw(pulseEnv: number) {
+			// Pure: dead flat.
+			pure.path.attr('d', lineGen(pure)(new Array(N).fill(0)) || '');
+			// Human: rolling buffer + variance corridor.
+			const e = activeEnvelope();
+			const bandGen = area<number>()
+				.x((_d, i) => human.x(i))
+				.y0((d) => human.y(d - e))
+				.y1((d) => human.y(d + e))
+				.curve(curveBasis);
+			human.band!.attr('d', bandGen(buf) || '');
+			human.path.attr('d', lineGen(human)(buf) || '');
+
+			const r = 4 + 3 * pulseEnv;
+			const op = 0.4 + 0.6 * pulseEnv;
+			pure.pulse.attr('r', r).attr('opacity', op);
+			human.pulse.attr('r', r).attr('opacity', op);
+		}
+
+		function tick() {
+			const next =
+				0.18 * Math.sin(performance.now() / 900) +
+				step(procs.residual) +
+				(noise.personal ? step(procs.personal) : (procs.personal.value *= 0.9, 0)) +
+				(noise.team ? step(procs.team) : (procs.team.value *= 0.9, 0)) +
+				(noise.external ? step(procs.external) : (procs.external.value *= 0.9, 0));
+			buf.push(clamp(next));
+			buf.shift();
+		}
+
+		let raf = 0;
+		let visible = true;
+		function loop() {
+			tick();
+			const pulseEnv = Math.max(0, Math.sin((performance.now() / 2500) * Math.PI * 2));
+			draw(pulseEnv);
+			if (visible) raf = requestAnimationFrame(loop);
+		}
+
+		if (reduceMotion) {
+			// No animation loop: redraw a static frame whenever the toggles change
+			// so the variance corridor still responds to the sources.
+			const redraw = () => {
+				seedStatic();
+				draw(1);
+			};
+			redraw();
+			onNoise(channel, (s) => {
+				noise = s;
+				redraw();
+			});
+		} else {
+			onNoise(channel, (s) => (noise = s));
+			// Pause the loop when off-screen to spare the battery.
+			const io = new IntersectionObserver(
+				(entries) => {
+					const onScreen = entries[0]?.isIntersecting ?? true;
+					if (onScreen && !visible) {
+						visible = true;
+						raf = requestAnimationFrame(loop);
+					} else if (!onScreen) {
+						visible = false;
+						cancelAnimationFrame(raf);
+					}
+				},
+				{ threshold: 0 },
+			);
+			io.observe(root);
+			raf = requestAnimationFrame(loop);
+		}
+
+		// Re-layout on width change.
+		let resizeFrame = 0;
+		const ro = new ResizeObserver(() => {
+			cancelAnimationFrame(resizeFrame);
+			resizeFrame = requestAnimationFrame(() => {
+				pure = buildCell(pureCell, PURE);
+				human = buildCell(humanCell, HUMAN);
+				draw(reduceMotion ? 1 : 0);
+			});
+		});
+		ro.observe(root);
+	}
+
+	function init() {
+		document.querySelectorAll<HTMLElement>('[data-stream-root]').forEach((root) => {
+			if (root.dataset.streamInit) return;
+			root.dataset.streamInit = 'true';
+			initRoot(root);
+		});
+	}
+
+	if (document.readyState === 'loading') {
+		document.addEventListener('DOMContentLoaded', init);
+	} else {
+		init();
+	}
+</script>

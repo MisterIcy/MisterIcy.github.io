@@ -1,0 +1,501 @@
+---
+/**
+ * Signal drift & calibration — a manager's running read against ground truth.
+ *
+ * A "True signal" random-walks over weeks (0–10 score). The "Manager's read"
+ * holds a stale value and decays away from the truth — the photograph fading —
+ * until a calibration event (1:1, Incident, Peer feedback) snaps it back. The
+ * shaded gap is the misread zone. Run the simulation to replay a fresh drift;
+ * each run is seeded anew so it feels alive.
+ *
+ * Conventions mirror Sankey.astro: viewBox SVG, ResizeObserver re-layout,
+ * prefers-reduced-motion fallback (full static chart), repo GROUP_COLORS.
+ */
+interface Props {
+	id: string;
+	caption?: string;
+	height?: number;
+	weeks?: number;
+}
+
+const { id, caption, height = 340, weeks = 24 } = Astro.props;
+---
+
+<figure class="not-prose calib-figure" data-calib-id={id}>
+	<div class="calib-controls">
+		<button type="button" class="calib-run" data-calib-run>Run simulation</button>
+		<div class="calib-speed" role="group" aria-label="Simulation speed">
+			<button type="button" data-speed="slow" aria-pressed="false">Slow</button>
+			<button type="button" data-speed="normal" aria-pressed="true">Normal</button>
+			<button type="button" data-speed="fast" aria-pressed="false">Fast</button>
+		</div>
+	</div>
+	<div
+		class="calib-root"
+		data-calib-root
+		data-weeks={weeks}
+		style={`--calib-height: ${height}px`}
+		role="img"
+		aria-label="A manager's read drifting from and snapping back to a true performance signal across weeks"
+	>
+	</div>
+	<div class="calib-legend" aria-hidden="true">
+		<span><i class="calib-swatch" style="background:#06b6d4"></i>True signal</span>
+		<span><i class="calib-swatch" style="background:#a855f7"></i>Manager's read</span>
+		<span><i class="calib-swatch calib-swatch--zone"></i>Misread zone</span>
+		<span><i class="calib-swatch calib-swatch--event"></i>Calibration event</span>
+	</div>
+	{caption && <figcaption class="calib-caption">{caption}</figcaption>}
+</figure>
+
+<style>
+	.calib-figure {
+		margin: 2rem 0;
+	}
+
+	.calib-controls {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		gap: 0.75rem;
+		margin-bottom: 0.85rem;
+	}
+
+	.calib-controls button {
+		cursor: pointer;
+		color: #e2e8f0;
+		border: 1px solid rgba(148, 163, 184, 0.25);
+		background: rgba(15, 23, 42, 0.35);
+		border-radius: 0.45rem;
+		padding: 0.4rem 0.8rem;
+		font-size: 0.82rem;
+		transition: border-color 150ms ease, background 150ms ease;
+	}
+
+	.calib-controls button:hover {
+		border-color: rgba(6, 182, 212, 0.55);
+	}
+
+	.calib-controls button:focus-visible {
+		outline: 2px solid #06b6d4;
+		outline-offset: 2px;
+	}
+
+	.calib-run {
+		font-weight: 600;
+		color: #06b6d4 !important;
+		border-color: rgba(6, 182, 212, 0.5) !important;
+	}
+
+	.calib-speed {
+		display: inline-flex;
+		gap: 0.35rem;
+		margin-left: auto;
+	}
+
+	.calib-speed button[aria-pressed='true'] {
+		background: rgba(6, 182, 212, 0.15);
+		border-color: rgba(6, 182, 212, 0.6);
+		color: #67e8f9;
+	}
+
+	.calib-root {
+		position: relative;
+		width: 100%;
+		min-height: var(--calib-height, 340px);
+	}
+
+	.calib-root :global(svg) {
+		width: 100%;
+		height: auto;
+		display: block;
+		overflow: visible;
+	}
+
+	.calib-root :global(.calib-axis path),
+	.calib-root :global(.calib-axis line) {
+		stroke: rgba(148, 163, 184, 0.25);
+	}
+
+	.calib-root :global(.calib-axis text) {
+		fill: #94a3b8;
+		font-size: 11px;
+	}
+
+	.calib-root :global(.calib-axis-title) {
+		fill: #94a3b8;
+		font-size: 11px;
+	}
+
+	.calib-root :global(.calib-event-line) {
+		stroke: #64748b;
+		stroke-dasharray: 3 4;
+	}
+
+	.calib-root :global(.calib-event-label) {
+		fill: #94a3b8;
+		font-size: 10px;
+		font-weight: 600;
+	}
+
+	.calib-root :global(.calib-event-hit) {
+		cursor: pointer;
+		fill: transparent;
+	}
+
+	.calib-root :global(.calib-event-marker) {
+		fill: #60a5fa;
+		stroke: #0b1220;
+		stroke-width: 1.5;
+	}
+
+	.calib-legend {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 1rem;
+		margin-top: 0.75rem;
+		font-size: 0.78rem;
+		color: #94a3b8;
+	}
+
+	.calib-legend span {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.4rem;
+	}
+
+	.calib-swatch {
+		width: 0.85rem;
+		height: 0.2rem;
+		border-radius: 2px;
+		display: inline-block;
+	}
+
+	.calib-swatch--zone {
+		height: 0.7rem;
+		background: rgba(245, 158, 11, 0.25);
+		border: 1px solid rgba(245, 158, 11, 0.5);
+	}
+
+	.calib-swatch--event {
+		width: 0.85rem;
+		height: 0.7rem;
+		background: #60a5fa;
+		border-radius: 999px;
+	}
+
+	.calib-tooltip {
+		position: absolute;
+		z-index: 20;
+		pointer-events: none;
+		padding: 0.35rem 0.6rem;
+		font-size: 0.78rem;
+		line-height: 1.35;
+		color: #f1f5f9;
+		background: rgba(15, 23, 42, 0.96);
+		border: 1px solid rgba(148, 163, 184, 0.35);
+		border-radius: 0.4rem;
+		box-shadow: 0 6px 20px rgba(0, 0, 0, 0.45);
+		white-space: nowrap;
+		opacity: 0;
+		transform: translate(-50%, -120%);
+		transition: opacity 120ms ease;
+	}
+
+	.calib-tooltip.is-visible {
+		opacity: 1;
+	}
+
+	.calib-tooltip strong {
+		color: #fbbf24;
+	}
+
+	.calib-caption {
+		margin-top: 0.75rem;
+		font-size: 0.85rem;
+		color: #94a3b8;
+		text-align: center;
+	}
+</style>
+
+<script>
+	import { select } from 'd3-selection';
+	import { scaleLinear } from 'd3-scale';
+	import { line, area, curveMonotoneX } from 'd3-shape';
+	import { axisBottom, axisLeft } from 'd3-axis';
+	import { randomNormal } from 'd3-random';
+
+	// Repo palette.
+	const TRUE = '#06b6d4'; // accent cyan
+	const READ = '#a855f7'; // flag purple
+	const ZONE = 'rgba(245, 158, 11, 0.18)'; // trust amber, transparent
+	const EVENT = '#60a5fa';
+
+	const Y_MAX = 10;
+	const SPEEDS: Record<string, number> = { slow: 320, normal: 150, fast: 65 };
+	const EVENT_TYPES = ['1:1', 'Incident', 'Peer feedback'];
+
+	interface CalEvent {
+		week: number;
+		type: string;
+		readBefore: number; // manager's read just before snapping
+		truth: number; // true signal at the event
+	}
+	interface Sim {
+		weeks: number;
+		truth: number[]; // length weeks+1
+		read: number[]; // length weeks+1
+		events: CalEvent[];
+	}
+
+	// Build a fresh, randomised run.
+	function buildSim(weeks: number): Sim {
+		const walk = randomNormal(0, 0.55);
+		const truth: number[] = [];
+		let t = 4.5 + Math.random() * 3;
+		for (let w = 0; w <= weeks; w++) {
+			// Gentle mean reversion towards 5 keeps it on-scale.
+			t += walk() + (5 - t) * 0.04;
+			truth.push(Math.max(0.5, Math.min(Y_MAX - 0.5, t)));
+		}
+
+		// 3–4 calibration events spread across the timeline, jittered each run.
+		const count = 3 + (Math.random() < 0.5 ? 0 : 1);
+		const eventWeeks: number[] = [];
+		for (let i = 0; i < count; i++) {
+			const base = Math.round(((i + 1) / (count + 1)) * weeks);
+			const jitter = Math.round((Math.random() - 0.5) * 3);
+			eventWeeks.push(Math.max(1, Math.min(weeks - 1, base + jitter)));
+		}
+
+		const read: number[] = [];
+		const events: CalEvent[] = [];
+		let current = truth[0] + (Math.random() - 0.5) * 1.5; // first impression
+		let nextEvent = 0;
+		for (let w = 0; w <= weeks; w++) {
+			if (nextEvent < eventWeeks.length && w === eventWeeks[nextEvent]) {
+				const readBefore = current;
+				current = truth[w] + (Math.random() - 0.5) * 1.0; // re-read, not perfect
+				events.push({
+					week: w,
+					type: EVENT_TYPES[nextEvent % EVENT_TYPES.length],
+					readBefore,
+					truth: truth[w],
+				});
+				nextEvent++;
+			} else if (w > 0) {
+				// Between events the read decays toward a stale prior — fading photo.
+				current += (current - truth[w]) * 0.015 + (Math.random() - 0.5) * 0.04;
+				current = Math.max(0.5, Math.min(Y_MAX - 0.5, current));
+			}
+			read.push(current);
+		}
+		return { weeks, truth, read, events };
+	}
+
+	function initRoot(root: HTMLElement) {
+		const weeks = parseInt(root.dataset.weeks || '24', 10);
+		const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+		const figure = root.closest('.calib-figure')!;
+
+		const cssHeight = parseInt(getComputedStyle(root).getPropertyValue('--calib-height'), 10);
+		const H = Number.isFinite(cssHeight) && cssHeight > 0 ? cssHeight : 340;
+		const margin = { top: 16, right: 16, bottom: 34, left: 36 };
+
+		let speed = 'normal';
+		let sim = buildSim(weeks);
+
+		// Tooltip (one per root), styled like Sankey's.
+		let tooltip = root.querySelector<HTMLDivElement>('.calib-tooltip');
+		if (!tooltip) {
+			tooltip = document.createElement('div');
+			tooltip.className = 'calib-tooltip';
+			root.appendChild(tooltip);
+		}
+		const tip = tooltip;
+		function showTip(html: string, event: MouseEvent) {
+			const r = root.getBoundingClientRect();
+			tip.innerHTML = html;
+			tip.style.left = `${event.clientX - r.left}px`;
+			tip.style.top = `${event.clientY - r.top}px`;
+			tip.classList.add('is-visible');
+		}
+		function hideTip() {
+			tip.classList.remove('is-visible');
+		}
+
+		// `progress` is the revealed week (fractional) during animation.
+		function render(progress: number) {
+			const width = root.clientWidth || 640;
+			select(root).select('svg').remove();
+			const svg = select(root)
+				.append('svg')
+				.attr('viewBox', `0 0 ${width} ${H}`)
+				.attr('preserveAspectRatio', 'xMidYMid meet');
+
+			const x = scaleLinear().domain([0, weeks]).range([margin.left, width - margin.right]);
+			const y = scaleLinear().domain([0, Y_MAX]).range([H - margin.bottom, margin.top]);
+
+			// Axes.
+			svg
+				.append('g')
+				.attr('class', 'calib-axis')
+				.attr('transform', `translate(0,${H - margin.bottom})`)
+				.call(axisBottom(x).ticks(6).tickFormat((d) => `w${d}`) as any);
+			svg
+				.append('g')
+				.attr('class', 'calib-axis')
+				.attr('transform', `translate(${margin.left},0)`)
+				.call(axisLeft(y).ticks(5) as any);
+			svg
+				.append('text')
+				.attr('class', 'calib-axis-title')
+				.attr('transform', `translate(12,${margin.top + 4}) rotate(-90)`)
+				.attr('text-anchor', 'end')
+				.text('trust / performance');
+
+			// Reveal up to `progress` weeks (integer slice + fractional tail).
+			const upto = Math.min(weeks, Math.max(0, progress));
+			const lastIdx = Math.floor(upto);
+			const idx = Array.from({ length: lastIdx + 1 }, (_, i) => i);
+			const sliceAt = (arr: number[]) => {
+				const pts: [number, number][] = idx.map((i) => [i, arr[i]]);
+				if (upto > lastIdx && lastIdx < weeks) {
+					const frac = upto - lastIdx;
+					const v = arr[lastIdx] + (arr[lastIdx + 1] - arr[lastIdx]) * frac;
+					pts.push([upto, v]);
+				}
+				return pts;
+			};
+
+			const truePts = sliceAt(sim.truth);
+			const readPts = sliceAt(sim.read);
+
+			// Misread zone between the two lines.
+			const zone = area<[number, number]>()
+				.x((d) => x(d[0]))
+				.y0((d, i) => y(readPts[i] ? readPts[i][1] : d[1]))
+				.y1((d) => y(d[1]))
+				.curve(curveMonotoneX);
+			svg.append('path').datum(truePts).attr('fill', ZONE).attr('stroke', 'none').attr('d', zone as any);
+
+			const lineGen = line<[number, number]>()
+				.x((d) => x(d[0]))
+				.y((d) => y(d[1]))
+				.curve(curveMonotoneX);
+
+			svg
+				.append('path')
+				.datum(readPts)
+				.attr('fill', 'none')
+				.attr('stroke', READ)
+				.attr('stroke-width', 2)
+				.attr('stroke-dasharray', '5 3')
+				.attr('d', lineGen as any);
+			svg
+				.append('path')
+				.datum(truePts)
+				.attr('fill', 'none')
+				.attr('stroke', TRUE)
+				.attr('stroke-width', 2.5)
+				.attr('d', lineGen as any);
+
+			// Calibration events revealed as the playhead passes them.
+			sim.events
+				.filter((e) => e.week <= upto)
+				.forEach((e) => {
+					const ex = x(e.week);
+					svg
+						.append('line')
+						.attr('class', 'calib-event-line')
+						.attr('x1', ex)
+						.attr('x2', ex)
+						.attr('y1', margin.top)
+						.attr('y2', H - margin.bottom);
+					svg
+						.append('text')
+						.attr('class', 'calib-event-label')
+						.attr('x', ex)
+						.attr('y', margin.top - 4)
+						.attr('text-anchor', 'middle')
+						.text(e.type);
+					svg
+						.append('circle')
+						.attr('class', 'calib-event-marker')
+						.attr('cx', ex)
+						.attr('cy', y(e.truth))
+						.attr('r', 4.5);
+
+					const delta = e.readBefore - e.truth;
+					const sign = delta >= 0 ? '+' : '−';
+					const html = `<strong>${e.type}</strong> &middot; week ${e.week}<br/>misread by <strong>${sign}${Math.abs(delta).toFixed(1)}</strong>`;
+					// Generous invisible hit area around the marker.
+					svg
+						.append('rect')
+						.attr('class', 'calib-event-hit')
+						.attr('x', ex - 10)
+						.attr('y', margin.top)
+						.attr('width', 20)
+						.attr('height', H - margin.bottom - margin.top)
+						.on('mouseenter', (event: MouseEvent) => showTip(html, event))
+						.on('mousemove', (event: MouseEvent) => showTip(html, event))
+						.on('mouseleave', hideTip);
+				});
+		}
+
+		let raf = 0;
+		function play() {
+			cancelAnimationFrame(raf);
+			if (reduceMotion) {
+				render(weeks);
+				return;
+			}
+			const msPerWeek = SPEEDS[speed];
+			const start = performance.now();
+			const frame = (now: number) => {
+				const progress = (now - start) / msPerWeek;
+				render(Math.min(weeks, progress));
+				if (progress < weeks) raf = requestAnimationFrame(frame);
+			};
+			raf = requestAnimationFrame(frame);
+		}
+
+		// Controls.
+		figure.querySelector<HTMLButtonElement>('[data-calib-run]')?.addEventListener('click', () => {
+			sim = buildSim(weeks);
+			play();
+		});
+		const speedBtns = Array.from(figure.querySelectorAll<HTMLButtonElement>('[data-speed]'));
+		speedBtns.forEach((b) => {
+			b.addEventListener('click', () => {
+				speed = b.dataset.speed || 'normal';
+				speedBtns.forEach((o) => o.setAttribute('aria-pressed', o === b ? 'true' : 'false'));
+			});
+		});
+
+		// Re-layout on width change (redraw fully revealed).
+		let resizeFrame = 0;
+		const ro = new ResizeObserver(() => {
+			cancelAnimationFrame(resizeFrame);
+			resizeFrame = requestAnimationFrame(() => render(weeks));
+		});
+		ro.observe(root);
+
+		// First paint: full chart so it is meaningful before any interaction.
+		render(weeks);
+	}
+
+	function init() {
+		document.querySelectorAll<HTMLElement>('[data-calib-root]').forEach((root) => {
+			if (root.dataset.calibInit) return;
+			root.dataset.calibInit = 'true';
+			initRoot(root);
+		});
+	}
+
+	if (document.readyState === 'loading') {
+		document.addEventListener('DOMContentLoaded', init);
+	} else {
+		init();
+	}
+</script>

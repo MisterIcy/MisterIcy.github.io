@@ -6,21 +6,42 @@ import { getReadingStats } from '../../lib/readingTime';
 export async function getStaticPaths() {
 	const allPosts = await getCollection('blog');
 	const isDev = import.meta.env.DEV;
-	// Filter out drafts in production, but allow them in development
-	const posts = allPosts.filter((post) => isDev || !post.data.draft);
-	return posts.map((post) => ({
+	const sortedPosts = allPosts
+		.filter((p) => isDev || !p.data.draft)
+		.sort((a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf());
+
+	return sortedPosts.map((post, index) => ({
 		params: { slug: post.id },
-		props: post,
+		props: {
+			post,
+			// prevPost = the newer post (lower index); nextPost = the older post
+			prevPost: sortedPosts[index - 1] ?? null,
+			nextPost: sortedPosts[index + 1] ?? null,
+			isHead: index === 0,
+		},
 	}));
 }
-type Props = CollectionEntry<'blog'>;
 
-const post = Astro.props;
+interface Props {
+	post: CollectionEntry<'blog'>;
+	prevPost: CollectionEntry<'blog'> | null;
+	nextPost: CollectionEntry<'blog'> | null;
+	isHead: boolean;
+}
+
+const { post, prevPost, nextPost, isHead } = Astro.props;
 const { Content, headings } = await render(post);
-
-const { minutes: readingTime } = getReadingStats(post.body ?? '');
+const { minutes: readingTime, words } = getReadingStats(post.body ?? '');
 ---
 
-<BlogPost {...post.data} post={post} headings={headings} readingTime={readingTime}>
+<BlogPost
+	post={post}
+	headings={headings}
+	readingTime={readingTime}
+	words={words}
+	prevPost={prevPost}
+	nextPost={nextPost}
+	isHead={isHead}
+>
 	<Content />
 </BlogPost>

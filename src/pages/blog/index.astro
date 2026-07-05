@@ -1,255 +1,351 @@
 ---
-import { Image } from 'astro:assets';
 import { getCollection } from 'astro:content';
 import BaseHead from '../../components/BaseHead.astro';
 import SEOHead from '../../components/SEOHead.astro';
 import Footer from '../../components/Footer.astro';
-import FormattedDate from '../../components/FormattedDate.astro';
 import Header from '../../components/Header.astro';
-import { SITE_DESCRIPTION, SITE_TITLE, SITE_URL } from '../../consts';
+import { SITE_TITLE, SITE_DESCRIPTION, SITE_URL, SITE_AUTHOR } from '../../consts';
 import { getReadingStats } from '../../lib/readingTime';
 
-// Filter out drafts in production, but show them in development
-const allPosts = await getCollection('blog');
 const isDev = import.meta.env.DEV;
+const allPosts = await getCollection('blog');
 const posts = allPosts
-	.filter((post) => isDev || !post.data.draft)
-	.sort((a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf());
+  .filter((p) => isDev || !p.data.draft)
+  .sort((a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf());
 
-// Enhanced blog description for SEO
-const blogDescription = `Explore ${SITE_TITLE} - A collection of articles about software development, DevOps, debugging, team dynamics, and the psychology behind great software. Read war stories and reflections from the trenches of technology.`;
+const totalCommits = posts.length;
+const sinceYear =
+  posts.length > 0
+    ? new Date(posts[posts.length - 1].data.pubDate).getFullYear()
+    : 2022;
 
-// Keywords for SEO
-const blogKeywords = [
-	'blog',
-	'software development',
-	'DevOps',
-	'programming',
-	'debugging',
-	'technology',
-	'coding',
-	'software engineering',
-	'web development',
-	'tech blog',
-];
+/** Deterministic 7-char hex from post id — same as index.astro */
+function shortHash(id: string): string {
+  let h = 0;
+  for (let i = 0; i < id.length; i++) {
+    h = (Math.imul(31, h) + id.charCodeAt(i)) | 0;
+  }
+  return Math.abs(h).toString(16).padStart(7, '0').slice(0, 7);
+}
 
-// Build ItemList schema for blog posts
+function isoDate(date: Date): string {
+  return date.toISOString().slice(0, 10);
+}
+
+// ── Build the interleaved log: year markers + post entries ──────────────────
+type YearMarker = { type: 'year'; year: number; label: string };
+type PostEntry = {
+  type: 'post';
+  post: (typeof posts)[number];
+  hash: string;
+  readingMinutes: number;
+  isHead: boolean;
+};
+type LogEntry = YearMarker | PostEntry;
+
+const logEntries: LogEntry[] = [];
+let lastYear: number | null = null;
+
+for (let i = 0; i < posts.length; i++) {
+  const post = posts[i];
+  const year = new Date(post.data.pubDate).getFullYear();
+
+  if (year !== lastYear) {
+    const label = i === posts.length - 1 ? `${year} · root` : String(year);
+    logEntries.push({ type: 'year', year, label } as YearMarker & { label: string });
+    lastYear = year;
+  }
+
+  const { minutes } = getReadingStats(post.body ?? '');
+  logEntries.push({
+    type: 'post',
+    post,
+    hash: shortHash(post.id),
+    readingMinutes: minutes,
+    isHead: i === 0,
+  });
+}
+
+// ── SEO ─────────────────────────────────────────────────────────────────────
+const pageTitle = `The Field Log — ${SITE_TITLE}`;
+const pageDescription = `${totalCommits} posts on software, engineering, teams, and the human side of the craft. Every post is a commit against a better understanding.`;
+
 const itemListSchema = {
-	'@context': 'https://schema.org',
-	'@type': 'ItemList',
-	itemListElement: posts.map((post, index) => ({
-		'@type': 'ListItem',
-		position: index + 1,
-		item: {
-			'@type': 'BlogPosting',
-			headline: post.data.title,
-			description: post.data.description,
-			url: new URL(`/blog/${post.id}/`, SITE_URL).toString(),
-			datePublished: post.data.pubDate.toISOString(),
-			dateModified: (post.data.updatedDate || post.data.pubDate).toISOString(),
-			...(post.data.heroImage && {
-				image: new URL(post.data.heroImage.src, SITE_URL).toString(),
-			}),
-		},
-	})),
+  '@context': 'https://schema.org',
+  '@type': 'ItemList',
+  itemListElement: posts.map((post, index) => ({
+    '@type': 'ListItem',
+    position: index + 1,
+    item: {
+      '@type': 'BlogPosting',
+      headline: post.data.title,
+      description: post.data.description,
+      url: new URL(`/blog/${post.id}/`, SITE_URL).toString(),
+      datePublished: post.data.pubDate.toISOString(),
+      dateModified: (post.data.updatedDate ?? post.data.pubDate).toISOString(),
+      ...(post.data.heroImage && {
+        image: new URL(post.data.heroImage.src, SITE_URL).toString(),
+      }),
+    },
+  })),
 };
 ---
 
 <!doctype html>
 <html lang="en" class="dark">
-	<head>
-		<BaseHead title={`${SITE_TITLE} - Blog`} description={blogDescription} />
-		<SEOHead
-			title={`${SITE_TITLE} - Blog`}
-			description={blogDescription}
-			keywords={blogKeywords}
-			canonical={new URL('/blog/', SITE_URL)}
-			schema={{
-				type: 'Blog',
-				breadcrumbs: [
-					{ name: 'Home', url: '/' },
-					{ name: 'Blog', url: '/blog/' },
-				],
-			}}
-		/>
-		<script type="application/ld+json" set:html={JSON.stringify(itemListSchema)} is:inline />
-	</head>
-	<body class="min-h-screen bg-bg-01 text-white">
-		<Header />
-		
-		<!-- Hero Section with Circuit Background -->
-		<section class="bg-circuit relative py-16 md:py-24 px-4">
-			<div class="max-w-7xl mx-auto text-center relative z-10">
-				<h1 class="text-4xl md:text-6xl font-bold mb-4 text-white">
-					Blog
-				</h1>
-				<p class="text-lg md:text-xl text-muted max-w-2xl mx-auto">
-					War stories and reflections from the trenches of software development
-				</p>
-			</div>
-		</section>
+  <head>
+    <BaseHead title={pageTitle} description={pageDescription} />
+    <SEOHead
+      title={pageTitle}
+      description={pageDescription}
+      canonical={new URL('/blog/', SITE_URL)}
+      schema={{
+        type: 'Blog',
+        breadcrumbs: [
+          { name: 'Home', url: '/' },
+          { name: 'The Field Log', url: '/blog/' },
+        ],
+      }}
+    />
+    <script type="application/ld+json" set:html={JSON.stringify(itemListSchema)} is:inline />
+  </head>
 
-		<!-- Blog Posts Section -->
-		<main class="max-w-7xl mx-auto px-4 py-12 md:py-16">
-			{posts.length > 0 ? (
-				<div class="masonry-grid">
-					{
-						posts.map((post) => {
-							const { minutes: readingMinutes } = getReadingStats(post.body ?? '');
-							return (
-							<article class="post-card group">
-								<a 
-									href={`/blog/${post.id}/`}
-									class="block h-full"
-									aria-label={`Read ${post.data.title}`}
-								>
-									{post.data.heroImage && (
-										<div class="post-image-wrapper mb-4 overflow-hidden rounded-lg">
-											<Image
-												width={600}
-												height={400}
-												src={post.data.heroImage}
-												alt={post.data.title}
-												class="w-full h-auto object-cover transition-transform duration-300 group-hover:scale-105"
-												loading="lazy"
-											/>
-										</div>
-									)}
-									<div class="post-content">
-										{post.data.category && (
-											<span class="inline-block px-3 py-1 mb-3 text-xs font-semibold rounded-full bg-accent/20 text-accent border border-accent/30">
-												{post.data.category}
-											</span>
-										)}
-										<h2 class="text-xl md:text-2xl font-bold mb-3 text-white group-hover:text-accent transition-colors duration-200 line-clamp-2">
-											{post.data.title}
-										</h2>
-										{(post.data.description || post.data.excerpt) && (
-											<p class="text-sm md:text-base text-slate-300 mb-4 line-clamp-3">
-												{post.data.excerpt || post.data.description}
-											</p>
-										)}
-										<div class="flex flex-wrap items-center justify-between gap-2 text-sm text-muted">
-											<time 
-												datetime={post.data.pubDate.toISOString()}
-												class="flex items-center gap-2"
-											>
-												<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-													<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-												</svg>
-												<FormattedDate date={post.data.pubDate} />
-											</time>
-											<span class="flex items-center gap-3 text-xs md:text-sm">
-												<span class="flex items-center gap-2" aria-label={`Reading time: ${readingMinutes} minutes`}>
-													<svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-														<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-													</svg>
-													{readingMinutes} min read
-												</span>
-												{post.data.tags && post.data.tags.length > 0 && (
-													<span class="text-muted">
-														{post.data.tags.length} {post.data.tags.length === 1 ? 'tag' : 'tags'}
-													</span>
-												)}
-											</span>
-										</div>
-									</div>
-								</a>
-							</article>
-							);
-						})
-					}
-				</div>
-			) : (
-				<div class="text-center py-16">
-					<div class="card bg-card border border-slate-700 rounded-lg p-8 md:p-12 max-w-2xl mx-auto">
-						<h2 class="text-2xl md:text-3xl font-bold mb-4 text-white">
-							No posts yet
-						</h2>
-						<p class="text-slate-300">
-							Check back soon for new content!
-						</p>
-					</div>
-				</div>
-			)}
-		</main>
+  <body class="min-h-screen bg-bg-01 text-body antialiased">
 
-		<Footer />
-	</body>
+    <!-- Skip to main content -->
+    <a
+      href="#main-content"
+      class="sr-only focus:not-sr-only focus:fixed focus:left-3 focus:top-3 focus:z-50 focus:rounded-lg focus:bg-accent focus:px-4 focus:py-2 focus:font-semibold focus:text-bg-01 focus:outline-none"
+    >
+      Skip to content
+    </a>
+
+    <Header />
+
+    <main id="main-content" class="mx-auto max-w-4xl px-5 py-12 sm:py-16 md:px-6">
+
+      <!-- ── Masthead ─────────────────────────────────────────────────────── -->
+      <div class="mb-12">
+        <p class="break-words font-mono text-xs text-muted">
+          <span class="text-accent">$</span> git log --all --since=&quot;{sinceYear}&quot; --pretty=brew
+        </p>
+
+        <h1
+          class="mt-3 font-display text-5xl font-extrabold leading-none tracking-tight text-ink sm:text-6xl"
+        >
+          The Field Log
+        </h1>
+
+        <p
+          class="mt-4 max-w-[65ch] text-muted"
+          style="font-size:1.375rem;line-height:1.85;letter-spacing:0.018em"
+        >
+          Every post is a commit against my own understanding. Newest first — war stories from the
+          trenches, in the order they happened.
+        </p>
+
+        <!-- Stats chips -->
+        <div class="mt-5 flex flex-wrap gap-2 font-mono text-xs">
+          <span class="rounded-full border border-line px-3 py-1 text-body">
+            {totalCommits} commit{totalCommits !== 1 ? 's' : ''}
+          </span>
+          <span class="rounded-full border border-line px-3 py-1 text-body">
+            branch: <span class="text-accent">main</span>
+          </span>
+          <span class="rounded-full border border-line px-3 py-1 text-body">
+            since {sinceYear}
+          </span>
+        </div>
+      </div>
+
+      <!-- ── Full commit graph ───────────────────────────────────────────── -->
+      {posts.length > 0 ? (
+        <ol
+          class="relative list-none"
+          aria-label="All posts"
+        >
+          <!-- Decorative rail — never the sole depth cue for card surfaces -->
+          <span
+            aria-hidden="true"
+            class="absolute bottom-6 top-3 w-px bg-gradient-to-b from-accent/60 via-line to-transparent"
+            style="left:0.9rem"
+          ></span>
+
+          {logEntries.map((entry) => {
+            if (entry.type === 'year') {
+              const e = entry as YearMarker;
+              return (
+                /* Year marker — organisational, not a post entry */
+                <li
+                  aria-hidden="true"
+                  class="grid gap-x-3 md:gap-x-5 mb-6 mt-10 first:mt-0"
+                  style="grid-template-columns:1.8rem minmax(0,1fr)"
+                >
+                  <div class="relative">
+                    <span
+                      class="absolute grid h-5 w-5 place-items-center rounded-full border border-accent/50 bg-bg-01"
+                      style="left:50%;top:0;transform:translateX(-50%)"
+                    >
+                      <span class="h-1.5 w-1.5 rounded-full bg-accent"></span>
+                    </span>
+                  </div>
+                  <span class="font-mono text-xs font-bold uppercase tracking-widest text-accent leading-5">
+                    {e.label}
+                  </span>
+                </li>
+              );
+            }
+
+            const e = entry as PostEntry;
+            const { post, hash, readingMinutes, isHead } = e;
+            const date = isoDate(new Date(post.data.pubDate));
+            const excerpt = post.data.excerpt ?? post.data.description;
+
+            return (
+              <li
+                class={[
+                  'entry group',
+                  'grid gap-x-3 md:gap-x-5',
+                  isHead ? 'mb-10' : 'mb-8',
+                ].join(' ')}
+                style="grid-template-columns:1.8rem minmax(0,1fr)"
+              >
+                {/* ── Node column ── */}
+                <div class="relative">
+                  {isHead ? (
+                    <span
+                      aria-hidden="true"
+                      class="node-head absolute h-4 w-4 rounded-full bg-accent ring-2 ring-accent/40"
+                      style="left:50%;top:1.6rem;transform:translateX(-50%)"
+                    ></span>
+                  ) : (
+                    <span
+                      aria-hidden="true"
+                      class="node absolute h-3.5 w-3.5 rounded-full bg-bg-01"
+                      style="left:50%;top:0.375rem;transform:translateX(-50%);box-shadow:0 0 0 1.5px #06b6d4, 0 0 0 5.5px #0b1220"
+                    ></span>
+                  )}
+                </div>
+
+                {/* ── Content column ── */}
+                {isHead ? (
+                  /* Featured HEAD card */
+                  <div
+                    class={[
+                      'relative rounded-2xl border bg-gradient-to-br from-card to-bg-02 p-5 sm:p-6',
+                      'border-accent/30',
+                      'focus-within:ring-2 focus-within:ring-accent focus-within:ring-offset-2 focus-within:ring-offset-bg-01',
+                    ].join(' ')}
+                  >
+                    <div class="flex flex-wrap items-center gap-x-3 gap-y-1 font-mono text-xs text-muted">
+                      <span class="text-accent2">{hash}</span>
+                      <span class="rounded bg-accent/15 px-1.5 py-0.5 text-accent">HEAD → main</span>
+                      {post.data.category && (
+                        <span class="rounded bg-white/5 px-1.5 py-0.5 text-body">
+                          {post.data.category}
+                        </span>
+                      )}
+                      <time datetime={date}>{date}</time>
+                    </div>
+
+                    <h2
+                      class="headline mt-3 font-display text-2xl font-extrabold leading-tight tracking-tight text-ink transition-colors group-hover:text-accent2 sm:text-3xl"
+                    >
+                      <a
+                        href={`/blog/${post.id}/`}
+                        class="after:absolute after:inset-0 focus-visible:outline-none"
+                      >
+                        {post.data.title}
+                      </a>
+                    </h2>
+
+                    {excerpt && (
+                      <p
+                        class="mt-3 max-w-[65ch] text-body"
+                        style="font-size:1.375rem;line-height:1.85;letter-spacing:0.018em"
+                      >
+                        {excerpt}
+                      </p>
+                    )}
+
+                    <p class="mt-4 font-mono text-xs text-muted">
+                      {SITE_AUTHOR.name} · {readingMinutes} min read
+                    </p>
+                  </div>
+                ) : (
+                  /* Compact entry */
+                  <div
+                    class="relative rounded-lg focus-within:ring-2 focus-within:ring-accent focus-within:ring-offset-2 focus-within:ring-offset-bg-01"
+                  >
+                    <div class="font-mono text-xs text-muted">
+                      <span class="text-accent2">{hash}</span>
+                      {post.data.category && (
+                        <> · <span class="text-body">{post.data.category}</span></>
+                      )}
+                      {' · '}
+                      <time datetime={date}>{date}</time>
+                    </div>
+
+                    <h2
+                      class="headline mt-1.5 font-display text-xl font-bold leading-tight tracking-tight text-ink transition-colors group-hover:text-accent2 sm:text-2xl"
+                    >
+                      <a
+                        href={`/blog/${post.id}/`}
+                        class="after:absolute after:inset-0 focus-visible:outline-none"
+                      >
+                        {post.data.title}
+                      </a>
+                    </h2>
+
+                    {excerpt && (
+                      <p
+                        class="mt-2 max-w-[65ch] text-muted"
+                        style="font-size:1rem;line-height:1.7;letter-spacing:0.018em"
+                      >
+                        {excerpt}
+                      </p>
+                    )}
+
+                    <p class="mt-2 font-mono text-xs text-muted">{readingMinutes} min read</p>
+                  </div>
+                )}
+              </li>
+            );
+          })}
+        </ol>
+      ) : (
+        /* Empty state — no posts yet */
+        <div class="rounded-2xl border border-line bg-card p-8 text-center md:p-12">
+          <p class="font-mono text-xs text-accent">$ git log</p>
+          <p class="mt-3 font-display text-2xl font-bold text-ink">No commits yet.</p>
+          <p class="mt-2 text-muted" style="font-size:1.375rem;line-height:1.85">
+            Check back soon.
+          </p>
+        </div>
+      )}
+
+    </main>
+
+    <Footer />
+
+  </body>
 </html>
 
 <style>
-	/* Masonry Layout using CSS Columns */
-	.masonry-grid {
-		column-count: 1;
-		column-gap: 1.5rem;
-		column-fill: balance;
-	}
+  /* Node hover/focus effects — scoped to this page */
+  .entry:hover .node,
+  .entry:focus-within .node {
+    background-color: #22d3ee;
+    box-shadow:
+      0 0 0 4px #0b1220,
+      0 0 14px 2px color-mix(in oklab, #06b6d4 60%, transparent);
+  }
 
-	.post-card {
-		break-inside: avoid;
-		page-break-inside: avoid;
-		margin-bottom: 1.5rem;
-		@apply bg-card border border-slate-700 rounded-lg p-6 transition-all duration-300;
-		display: inline-block;
-		width: 100%;
-	}
-
-	.post-card:hover {
-		@apply border-accent;
-		box-shadow: 0 10px 25px -5px rgba(6, 182, 212, 0.1), 0 10px 10px -5px rgba(6, 182, 212, 0.04);
-		transform: translateY(-2px);
-	}
-
-	.post-image-wrapper {
-		aspect-ratio: 3 / 2;
-		@apply bg-slate-800;
-	}
-
-	.post-image-wrapper img {
-		width: 100%;
-		height: 100%;
-		object-fit: cover;
-	}
-
-	.post-content {
-		display: flex;
-		flex-direction: column;
-		height: 100%;
-	}
-
-	/* Line clamp utilities */
-	.line-clamp-2 {
-		display: -webkit-box;
-		-webkit-line-clamp: 2;
-		-webkit-box-orient: vertical;
-		overflow: hidden;
-	}
-
-	.line-clamp-3 {
-		display: -webkit-box;
-		-webkit-line-clamp: 3;
-		-webkit-box-orient: vertical;
-		overflow: hidden;
-	}
-
-	/* Responsive breakpoints */
-	@media (min-width: 640px) {
-		.masonry-grid {
-			column-count: 2;
-		}
-	}
-
-	@media (min-width: 1024px) {
-		.masonry-grid {
-			column-count: 3;
-		}
-	}
-
-	/* Ensure cards don't break across columns on smaller screens */
-	@media (max-width: 639px) {
-		.post-card {
-			margin-bottom: 1rem;
-		}
-	}
+  .entry:hover .node-head,
+  .entry:focus-within .node-head {
+    background-color: #22d3ee;
+    box-shadow:
+      0 0 0 4px #0b1220,
+      0 0 18px 4px color-mix(in oklab, #06b6d4 70%, transparent);
+  }
 </style>

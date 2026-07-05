@@ -14,7 +14,7 @@ export const SITE_AUTHOR = {
 	jobTitle: 'Senior Software Engineer',
 	worksFor: {
 		name: 'Epignosis',
-		url: 'https://www.epignosishq.com',
+		url: 'http://epignosishq.com/',
 	},
 	// Add your social profiles here
 	social: {

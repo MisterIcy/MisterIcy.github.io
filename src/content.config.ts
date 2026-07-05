@@ -10,6 +10,9 @@ const blog = defineCollection({
 			title: z.string(),
 			description: z.string(),
 			draft: z.boolean().optional().default(true),
+			// Path (relative to project root) to a BibTeX/CSL-JSON file
+			// for this post's citations, consumed by rehype-citation.
+			bibliography: z.string().optional(),
 			// Transform string to Date object
 			pubDate: z.coerce.date(),
 			updatedDate: z.coerce.date().optional(),
