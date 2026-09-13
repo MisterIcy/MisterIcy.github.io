@@ -1,0 +1,52 @@
+# Dependabot configuration for MisterIcy.github.io
+# https://docs.github.com/en/code-security/reference/supply-chain-security/dependabot-options-reference
+version: 2
+
+updates:
+  # npm dependencies: Astro, Tailwind, authoring/tooling scripts
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 10
+    labels:
+      - "dependencies"
+    commit-message:
+      prefix: "chore"
+      include: "scope"
+    groups:
+      # Astro core + official plugins are released in lockstep; update together
+      # to avoid mismatched major versions across the ecosystem.
+      astro:
+        patterns:
+          - "astro"
+          - "@astrojs/*"
+      # Everything else: bundle low-risk minor/patch bumps into one PR.
+      # Major bumps (outside the astro group) still open individual PRs
+      # so they get a proper look before merging.
+      minor-and-patch:
+        exclude-patterns:
+          - "astro"
+          - "@astrojs/*"
+        update-types:
+          - "minor"
+          - "patch"
+
+  # GitHub Actions used by the CI/CD workflows (pages, cover generation, indexnow)
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 10
+    labels:
+      - "dependencies"
+      - "github-actions"
+    commit-message:
+      prefix: "chore"
+      include: "scope"
+    groups:
+      github-actions:
+        patterns:
+          - "*"
